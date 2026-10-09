@@ -38,12 +38,14 @@ button{font-family:inherit;font-size:inherit;cursor:pointer}
 .ph{padding:12px 14px;border-bottom:1px solid var(--line);font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .ph small{color:var(--muted);font-weight:400}
 .list{max-height:none}
-.loc-row{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;border:0;border-bottom:1px solid var(--line);background:#fff;padding:8px 14px;min-height:60px;text-align:left}
-.loc-main{display:block;flex:1;min-width:0}
-.loc-art{display:block;font-size:13px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .4s ease;opacity:1}
+.loc-row{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;border:0;border-bottom:1px solid var(--line);background:#fff;padding:0 14px;min-height:54px;text-align:left}
+.loc-main{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+.loc-code{flex-shrink:0}
+.loc-art{display:block;flex:1;min-width:0;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .4s ease;opacity:1}
 .loc-art b{color:var(--ink)}
 .loc-art.fade{opacity:0}
 .loc-row .tag{flex-shrink:0}
+
 
 .loc-row:active,.loc-row:hover{background:#eaf1ff}
 .loc-row.active{background:#dce8ff}
@@ -273,15 +275,21 @@ $("list").addEventListener("click", function(e){
 });
 
 /* ---------- result views ---------- */
+var savedScrollY = 0;
+
 function openResult(html){
+  if (!document.body.classList.contains("showing")){
+    savedScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+  }
   $("result").innerHTML = html;
   document.body.classList.add("showing");
   window.scrollTo(0, 0);
 }
 function goBack(){
   document.body.classList.remove("showing");
-  window.scrollTo(0, 0);
+  window.scrollTo(0, savedScrollY);
 }
+
 
 function showLocation(loc){
   activeLoc = loc;
