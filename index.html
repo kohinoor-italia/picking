@@ -650,6 +650,81 @@ body:not(.showing) #resultPanel{display:none}
 .upg-go:active{transform:scale(.98)}
 
 
+/* ================= SCHERMI 480x700 (terminale / tablet mici) ================= */
+@media (min-width:440px) and (max-width:899px) and (max-height:800px){
+  .top{padding:6px 10px 8px;padding-top:calc(6px + env(safe-area-inset-top))}
+  .top-row{margin-bottom:6px}
+  .brand{gap:8px}
+  .brand-ic{width:32px;height:32px;border-radius:9px}
+  .brand-ic .ic{width:18px;height:18px}
+  .brand .title{font-size:15px}
+  .brand .upd{font-size:11px;margin-top:1px}
+  .hbtn{width:36px;height:36px}
+  .hbtn .ic{width:18px;height:18px}
+  .search-wrap .search{height:42px;font-size:16px;border-radius:12px}
+  .search-wrap .clear{top:4px;width:34px;height:34px}
+  .sugg{top:48px;max-height:52vh}
+
+  .wrap{padding:8px}
+  .grid{gap:8px}
+  .ph{padding:8px 12px}
+  .ph-t b{font-size:15px}
+  .lfwrap{padding:6px 8px 0}
+  .lf{height:34px}
+  .filters{padding:6px 8px;gap:4px 6px}
+  .seg .chip{min-height:28px;padding:3px 9px;font-size:12.5px}
+  .lvl{min-height:28px;font-size:12.5px}
+  .loc-row{min-height:44px;padding:0 12px}
+  .loc-code{font-size:16px}
+  .letter-sep{padding:8px 12px 5px}
+  .grp-sep{padding:4px 12px}
+  .more{padding:12px}
+  .fab{width:44px;height:44px;right:12px;bottom:12px}
+  .fab .ic{width:22px;height:22px}
+  body.selmode .fab{bottom:70px}
+  .selbar{padding:8px 10px}
+  .selbar button{min-height:38px;padding:6px 10px}
+
+  .loc-head{padding:8px 10px}
+  .loc-head .big-loc{font-size:21px}
+  th{padding:6px 12px}
+  td{padding:9px 12px}
+  .art-card{padding:10px 12px}
+  .art-card h3{font-size:18px}
+  .loc-btn{min-height:42px;padding:8px 12px;font-size:17px;margin:0 6px 6px 0}
+
+  /* meniu excluderi: 2 coloane, compact */
+  .mh{padding:calc(8px + env(safe-area-inset-top)) 12px 8px}
+  .mh b{font-size:16px}
+  #exPdf{height:32px;padding:0 12px;font-size:13px}
+  .mx{width:32px;height:32px}
+  .mb{grid-template-columns:1fr 1fr;gap:8px;padding:10px 10px calc(14px + env(safe-area-inset-bottom))}
+  #exStats{grid-column:1/-1}
+  .xs-grid{gap:8px;margin-bottom:8px}
+  .xs{padding:6px 10px;border-radius:10px}
+  .xs b{font-size:18px}
+  .xs span{font-size:11px}
+  .xs-title{font-size:11px}
+  .mb .lf{height:38px;font-size:15px}
+  #exAdd{height:38px;min-height:38px;font-size:14px;margin:0}
+  #exSearch{grid-column:1/-1;margin-top:2px}
+  #exList{grid-column:1/-1;gap:8px}
+  .ex-row{padding:10px 12px;gap:8px}
+  .xc-range{font-size:14px}
+  .xc-chips{max-height:58px;margin-top:6px}
+  .xc-foot{flex-direction:row;align-items:center;justify-content:space-between;padding-top:8px}
+  .ex-row button[data-id]{width:auto;min-height:34px;padding:0 16px;font-size:14px}
+
+  /* ghid upload */
+  .upg{padding:8px}
+  .upg-box{max-height:96vh}
+  .upg-h{padding:12px 14px}
+  .upg-b{padding:10px 14px 14px}
+  .upg-steps li{padding:6px 0;font-size:14px}
+  .upg-note{margin:8px 0 10px}
+  .upg-go{height:44px}
+}
+
 </style>
 </head>
 <body>
