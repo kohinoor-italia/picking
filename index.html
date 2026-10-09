@@ -475,6 +475,21 @@ body:not(.showing) #resultPanel{display:none}
   }
 }
 
+/* ---- FIX: fără spațiu alb între căutare și listă ---- */
+@media (min-width:900px){
+  .mb{grid-template-rows:70px repeat(5,auto) 1fr}
+
+  .mb::before{grid-row:1/8}
+  #exStats{grid-row:1/3}
+  #exDa{grid-row:3}
+  #exA{grid-row:4}
+  #exMode{grid-row:5}
+  #exAdd{grid-row:6}
+
+  #exSearch{grid-row:1;align-self:start}
+  #exList{grid-row:2/8;padding-top:14px}
+}
+
 
 /* ================= END FULLSCREEN ================= */
 
