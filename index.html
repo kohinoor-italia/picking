@@ -94,7 +94,16 @@ td.code{font-weight:700;white-space:nowrap}
 .ex-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
 .ex-row button{border:0;background:#fde8ea;color:#b00020;border-radius:8px;padding:6px 10px;font-weight:700}
 
+.selbar{position:fixed;left:0;right:0;bottom:0;z-index:55;background:#1b2430;color:#fff;padding:10px 12px;display:none;align-items:center;gap:8px}
+.selbar.on{display:flex}
+.selbar span{flex:1;font-weight:700}
+.selbar button{border:0;border-radius:10px;padding:10px 12px;min-height:42px;font-weight:700;background:#fff;color:#1b2430}
+.selbar button.go{background:#b00020;color:#fff}
+.loc-row.sel{background:#fde8ea}
+body.selmode .wrap{padding-bottom:90px}
+
 /* mobile: lista sau rezultat */
+
 
 
 
@@ -138,7 +147,8 @@ body:not(.showing) #resultPanel{display:none}
 <div class="wrap">
   <div class="grid">
     <div class="panel" id="listPanel">
-      <div class="ph"><span>Tutte le ubicazioni</span><small id="listCount"></small></div>
+      <div class="ph"><span>Tutte le ubicazioni</span><small id="listCount"></small><button class="chip" id="selBtn">☑ Seleziona</button></div>
+
       <div class="lfwrap"><input class="lf" id="lq" type="text" placeholder="🔍 Filtra ubicazioni (es. A)" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
       <div class="filters" id="filters">
 
@@ -159,7 +169,15 @@ body:not(.showing) #resultPanel{display:none}
   </div>
 </div>
 
+<div class="selbar" id="selBar">
+  <span id="selCnt">0 selezionate</span>
+  <button id="selAll">Tutte</button>
+  <button id="selGo" class="go">🚫 Escludi</button>
+  <button id="selCancel">Annulla</button>
+</div>
+
 <div class="modal" id="excModal">
+
   <div class="mbox">
     <div class="mh"><b>Ubicazioni escluse</b><button class="mx" id="excClose">&times;</button></div>
     <div class="mb">
@@ -334,8 +352,9 @@ function renderList(){
       artLine = '<span class="loc-art' + (cnt > 1 ? ' rot' : '') + '" data-loc="' + esc(loc) + '" data-i="0">' +
         artHtml(items[0]) + '</span>';
     }
-    html += '<button class="loc-row' + (loc === activeLoc ? " active" : "") + '" data-loc="' + esc(loc) + '">' +
-      '<span class="loc-main"><span class="loc-code">' + esc(loc) + '</span>' + artLine + '</span>' +
+    html += '<button class="loc-row' + (loc === activeLoc ? " active" : "") + (SEL[loc] ? " sel" : "") + '" data-loc="' + esc(loc) + '">' +
+      '<span class="loc-main"><span class="loc-code">' + (selMode ? (SEL[loc] ? "✅ " : "⬜ ") : "") + esc(loc) + '</span>' + artLine + '</span>' +
+
       (cnt ? '<span class="tag">' + cnt + ' art.</span>' : '<span class="tag empty">libera</span>') +
       '</button>';
   }
@@ -378,7 +397,11 @@ $("list").addEventListener("click", function(e){
   var more = e.target.closest("#moreBtn");
   if (more){ shown += 300; renderList(); return; }
   var row = e.target.closest(".loc-row");
-  if (row) showLocation(row.getAttribute("data-loc"));
+  if (row){
+    var l = row.getAttribute("data-loc");
+    if (selMode){ toggleSel(l); return; }
+    showLocation(l);
+  }
 });
 
 /* ---------- result views ---------- */
@@ -781,7 +804,125 @@ async function excludeLoc(loc){
   rebuild();
 }
 
+var SEL = {};
+var selMode = false;
+
+function updBar(){
+  var n = Object.keys(SEL).length;
+  $("selCnt").textContent = n + " selezionate";
+  $("selBar").classList.toggle("on", selMode);
+  document.body.classList.toggle("selmode", selMode);
+  $("selBtn").classList.toggle("on", selMode);
+}
+
+function toggleSel(loc){
+  if (SEL[loc]) delete SEL[loc]; else SEL[loc] = 1;
+  var rows = document.querySelectorAll(".loc-row");
+  for (var i = 0; i < rows.length; i++){
+    if (rows[i].getAttribute("data-loc") === loc){
+      rows[i].classList.toggle("sel", !!SEL[loc]);
+      rows[i].querySelector(".loc-code").textContent = (SEL[loc] ? "✅ " : "⬜ ") + loc;
+    }
+  }
+  updBar();
+}
+
+function exitSel(){
+  selMode = false;
+  SEL = {};
+  updBar();
+  renderList();
+}
+
+$("selBtn").addEventListener("click", function(){
+  if (selMode){ exitSel(); return; }
+  selMode = true;
+  SEL = {};
+  updBar();
+  renderList();
+});
+
+$("selCancel").addEventListener("click", exitSel);
+
+$("selAll").addEventListener("click", function(){
+  getFiltered().forEach(function(l){ SEL[l] = 1; });
+  updBar();
+  renderList();
+});
+
+$("selGo").addEventListener("click", async function(){
+  var locs = Object.keys(SEL);
+  if (!locs.length){ alert("Nessuna ubicazione selezionata."); return; }
+  if (!confirm("Escludere " + locs.length + " ubicazioni?")) return;
+  var arr = locs.map(function(l){ var u = l.toUpperCase(); return { da: u, a: u, modo: "tutte" }; });
+  var ins = await sb.from("ubicazioni_escluse").insert(arr);
+  if (ins.error){ alert("Errore: " + ins.error.message); return; }
+  selMode = false;
+  SEL = {};
+  updBar();
+  await loadExc();
+  rebuild();
+});
+
+var online = true, lastOk = Date.now(), busyHB = false, hiddenAt = 0;
+
+function withTimeout(p, ms){
+  return Promise.race([p, new Promise(function(_, rej){
+    setTimeout(function(){ rej(new Error("timeout")); }, ms);
+  })]);
+}
+
+async function softRefresh(){
+  await loadExc();
+  var rows = await loadAll();
+  buildIndex(rows);
+  renderList();
+  $("updTxt").textContent = fmtDate(DB.last);
+}
+
+async function heartbeat(){
+  if (busyHB) return;
+  busyHB = true;
+  try {
+    var r = await withTimeout(sb.from(TABLE).select("id").limit(1), 6000);
+    if (r.error) throw r.error;
+    lastOk = Date.now();
+    if (!online){
+      online = true;
+      setStatus("Connessione ripristinata", 100);
+      await softRefresh();
+      setTimeout(function(){ setStatus("", 0); }, 1500);
+    }
+  } catch (e){
+    online = false;
+    setStatus("Connessione persa... riprovo", 0, true);
+  }
+  busyHB = false;
+}
+
+function hbLoop(){
+  heartbeat().then(function(){
+    setTimeout(hbLoop, online ? 25000 : 3000);
+  });
+}
+
+document.addEventListener("visibilitychange", function(){
+  if (document.hidden){ hiddenAt = Date.now(); return; }
+  heartbeat().then(function(){
+    if (online && hiddenAt && Date.now() - hiddenAt > 60000) softRefresh().catch(function(){});
+    hiddenAt = 0;
+  });
+});
+window.addEventListener("online", heartbeat);
+window.addEventListener("offline", function(){
+  online = false;
+  setStatus("Connessione persa... riprovo", 0, true);
+});
+
 init();
+setTimeout(hbLoop, 25000);
+
+
 
 
 
