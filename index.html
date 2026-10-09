@@ -365,73 +365,36 @@ body:not(.showing) #resultPanel{display:none}
 }
 
 
-/* ================= DESKTOP: MENIU EXCLUDERI (>=900px) ================= */
-@keyframes modalFade{from{opacity:0}to{opacity:1}}
-@keyframes modalPop{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
-
+/* ================= MENIU EXCLUDERI: COMPACT + CĂUTARE (>=900px) ================= */
 @media (min-width:900px){
-  .modal.on{animation:modalFade .18s ease-out}
-  .modal.on .mbox{animation:modalPop .22s cubic-bezier(.2,.8,.2,1)}
+  .mbox{max-width:600px;border-radius:16px;max-height:80vh}
+  .mh{padding:12px 18px}
+  .mh b{font-size:15px}
+  .mx{width:30px;height:30px}
+  .mx .ic{width:16px;height:16px}
 
-  .mbox{
-    max-width:640px;border-radius:22px;border:1px solid rgba(255,255,255,.6);
-    display:flex;flex-direction:column;overflow:hidden;max-height:86vh;
+  .mb::before{display:none}
+  .mb{padding:14px 18px 18px;gap:8px}
+  .mb .lf{height:36px;font-size:13px;border-radius:10px;padding:0 12px}
+  #exAdd{height:36px;min-height:36px;font-size:13px;border-radius:10px;box-shadow:0 4px 12px rgba(11,95,255,.25)}
+
+  #exSearch{
+    grid-column:1/-1;margin-top:6px;
+    background:#f6f8fb url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7686' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4.5 4.5'/%3E%3C/svg%3E") no-repeat 11px center/16px;
+    padding-left:34px !important;
   }
 
-  /* ---- header ---- */
-  .mh{
-    padding:20px 26px;border-bottom:1px solid var(--line);
-    background:linear-gradient(135deg,#f3f7ff,#ffffff);flex-shrink:0;
-  }
-  .mh b{font-size:20px;font-weight:800;letter-spacing:.2px;color:var(--ink)}
-  .mx{width:38px;height:38px;border-radius:50%;background:#eef1f6;color:var(--muted)}
-  .mx:hover{background:#dde3ec;color:var(--ink)}
+  #exList{margin-top:0;max-height:52vh}
+  #exList::before{content:"Esclusioni attive · " attr(data-count);font-size:11px;margin-bottom:0}
+  .ex-row{padding:8px 12px;margin-top:6px;border-radius:10px;font-size:13px;gap:10px}
+  .ex-row .ic{width:12px;height:12px;margin:0 4px}
+  .ex-row small{font-size:11.5px}
+  .ex-row small[style]{margin-top:2px;max-height:54px;line-height:1.4}
+  .ex-row button{padding:5px 10px;font-size:12px;border-radius:8px}
+  #exList .msg{padding:18px 12px !important;font-size:13px;margin-top:6px}
+}
+/* ================= END ================= */
 
-  /* ---- formular: Da / A pe un rând, mod + buton pe al doilea ---- */
-  .mb{
-    grid-template-columns:1fr 1fr;gap:12px;padding:22px 26px 26px;
-    overflow:auto;align-content:start;
-  }
-  .mb::before{
-    content:"Nascondi un interval di ubicazioni dalla lista. Le ubicazioni occupate restano sempre visibili.";
-    grid-column:1/-1;font-size:13px;line-height:1.45;color:var(--muted);
-    background:#f3f7ff;border:1px solid #dbe6fb;border-radius:12px;padding:10px 14px;
-  }
-  .mb .lf{
-    height:46px;font-size:15px;border-radius:12px;padding:0 14px;
-    font-variant-numeric:tabular-nums;
-  }
-  .mb select.lf{cursor:pointer;padding-right:10px}
-  #exAdd{
-    height:46px;min-height:46px;border-radius:12px;font-size:15px;font-weight:700;
-    background:linear-gradient(135deg,#0b5fff,#0846c2);color:#fff;border:0;
-    box-shadow:0 6px 16px rgba(11,95,255,.3);transition:transform .15s, box-shadow .15s;
-  }
-  #exAdd:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(11,95,255,.4)}
-  #exAdd:active{transform:none}
-
-  /* ---- lista de excluderi ---- */
-  #exList{
-    grid-column:1/-1;margin-top:6px;max-height:42vh;overflow:auto;
-    padding-right:4px;scrollbar-width:thin;scrollbar-color:#c3cddd transparent;
-  }
-  #exList::before{
-    content:"Esclusioni attive";display:block;margin-bottom:4px;
-    font-size:12px;font-weight:700;color:var(--muted);
-    text-transform:uppercase;letter-spacing:.6px;
-  }
-  .ex-row{
-    align-items:flex-start;gap:14px;margin-top:8px;padding:14px 16px;
-    background:#f7f9fd;border:1px solid var(--line);border-top:1px solid var(--line);
-    border-radius:14px;font-size:15px;font-weight:700;color:var(--ink);
-    transition:background .12s, border-color .12s, box-shadow .12s;
-  }
-  .ex-row:hover{background:#fff;border-color:#c9d8f5;box-shadow:0 4px 14px rgba(20,40,90,.08)}
-  .ex-row > span{flex:1;min-width:0;font-variant-numeric:tabular-nums}
-  .ex-row .ic{color:var(--brand);marg
-
-
-/* ================= END DESKTOP REDESIGN ================= */
 
 
 
@@ -1485,6 +1448,48 @@ document.addEventListener("click", function(e){
     e.preventDefault();
   }
 }, true);
+
+
+/* ---------- CERCA NELLE ESCLUSIONI ---------- */
+(function(){
+  var inp = document.createElement("input");
+  inp.className = "lf";
+  inp.id = "exSearch";
+  inp.type = "text";
+  inp.placeholder = "Cerca nelle ubicazioni escluse (es. A.01.50)";
+  inp.setAttribute("autocomplete", "off");
+  inp.setAttribute("autocapitalize", "off");
+  inp.setAttribute("spellcheck", "false");
+  $("exList").parentNode.insertBefore(inp, $("exList"));
+
+  function filterExc(){
+    var box = $("exList");
+    var q = noDots(inp.value);
+    var rows = box.querySelectorAll(".ex-row");
+    var old = box.querySelector(".nores");
+    if (old) old.remove();
+    var n = 0;
+    for (var i = 0; i < rows.length; i++){
+      var ok = !q || noDots(rows[i].textContent).indexOf(q) !== -1;
+      rows[i].style.display = ok ? "" : "none";
+      if (ok) n++;
+    }
+    box.setAttribute("data-count", q ? n + " / " + rows.length : String(rows.length));
+    if (rows.length && !n){
+      var d = document.createElement("div");
+      d.className = "msg nores";
+      d.textContent = "Nessun risultato";
+      box.appendChild(d);
+    }
+  }
+
+  var origRender = renderExc;
+  renderExc = function(){ origRender(); filterExc(); };
+
+  inp.addEventListener("input", filterExc);
+  $("btnExc").addEventListener("click", function(){ inp.value = ""; filterExc(); });
+})();
+
 
 
 </script>
