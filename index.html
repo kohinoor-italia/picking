@@ -36,6 +36,12 @@ button{font-family:inherit;font-size:inherit;cursor:pointer}
 .sg:active,.sg:hover{background:#eaf1ff}
 .sg b{display:block;font-size:16px}
 .sg span{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.sg .loc-art b{display:inline;font-size:13px;color:var(--ink)}
+.sg-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sg .tag{display:inline-block;margin:0;padding:3px 9px;font-size:12px;color:var(--ok);flex-shrink:0}
+.sg .tag.empty{color:var(--muted)}
+
+
 
 .wrap{max-width:1200px;margin:0 auto;padding:12px}
 .grid{display:grid;grid-template-columns:1fr;gap:12px}
@@ -75,6 +81,14 @@ body.selmode .fab{bottom:78px}
 .back{display:inline-block;border:0;background:#eaf1ff;color:var(--brand);font-weight:700;border-radius:10px;padding:10px 14px;min-height:44px;margin:12px 14px 0}
 .big-loc{font-size:30px;font-weight:700;color:var(--brand);padding:12px 14px 0;word-break:break-all}
 .sub{padding:2px 14px 12px;color:var(--muted)}
+.loc-head{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f6f8fb;border-bottom:1px solid var(--line)}
+.loc-head .back{width:40px;height:40px;min-height:0;padding:0;margin:0;border-radius:50%;font-size:28px;line-height:36px;text-align:center;flex-shrink:0}
+.loc-head .loc-title{flex:1;min-width:0}
+.loc-head .big-loc{font-size:24px;line-height:1.1;padding:0}
+.loc-head .sub{padding:2px 0 0;font-size:13px}
+.excl-btn{width:40px;height:40px;border:0;border-radius:50%;background:#fde8ea;font-size:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0}
+.excl-btn:active{background:#f9cfd4}
+
 table{width:100%;border-collapse:collapse}
 th{text-align:left;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:8px 14px;background:#f6f8fb}
 td{padding:12px 14px;border-top:1px solid var(--line);vertical-align:top}
@@ -99,6 +113,54 @@ td.code{font-weight:700;white-space:nowrap}
 .chip{flex-shrink:0;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;padding:4px 10px;min-height:30px;font-size:13px;font-weight:700}
 
 .chip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.ph-t{display:flex;flex-direction:column;min-width:0}
+.ph-t b{font-size:16px;line-height:1.2}
+.ph-t small{display:block;font-size:12px;margin-top:2px}
+#selBtn{background:#eaf1ff;color:var(--brand);border-color:#eaf1ff;min-height:34px;padding:6px 12px;font-size:14px}
+#selBtn.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.filters{justify-content:space-between;align-items:center;overflow:visible;padding:8px 10px}
+.seg{display:flex;gap:2px;background:#e6ebf3;border-radius:10px;padding:3px;flex-shrink:0}
+.seg .chip{border:0;background:transparent;color:var(--muted);border-radius:8px;min-height:30px;padding:4px 12px}
+.seg .chip.on{background:#fff;color:var(--brand);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.ic{width:1.2em;height:1.2em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;display:inline-block;vertical-align:-.2em}
+.btn-up{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn-up .ic{width:20px;height:20px}
+.clear .ic{width:20px;height:20px;vertical-align:middle}
+.mx{display:flex;align-items:center;justify-content:center}
+.mx .ic{width:22px;height:22px}
+.chip{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.chip .ic{width:16px;height:16px;vertical-align:middle}
+.seg .chip .ic{width:17px;height:17px}
+.selbar button{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.selbar button .ic{width:18px;height:18px}
+.fab .ic{width:26px;height:26px;stroke-width:2.4}
+.lfbox{position:relative}
+.lfbox .ic{position:absolute;left:11px;top:50%;margin-top:-9px;width:18px;height:18px;color:var(--muted);pointer-events:none}
+.lfbox .lf{padding-left:36px}
+.back .ic{width:18px;height:18px;vertical-align:-4px;margin-right:2px}
+.loc-head .back{display:flex;align-items:center;justify-content:center}
+.loc-head .back .ic{width:22px;height:22px;margin:0;vertical-align:middle}
+.excl-btn{color:#b00020}
+.excl-btn .ic{width:20px;height:20px}
+.ck{display:inline-flex;vertical-align:middle;margin-right:8px;color:var(--muted)}
+.ck.on{color:#b00020}
+.ck .ic{width:22px;height:22px;vertical-align:middle}
+.ex-row .ic{width:14px;height:14px;vertical-align:-2px;margin:0 2px;color:var(--muted)}
+.top-row{margin-bottom:10px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand-ic{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.brand-ic .ic{width:22px;height:22px;color:#fff}
+.brand .title{font-size:17px;line-height:1.15}
+.brand .upd{display:flex;align-items:center;gap:4px;font-size:11.5px;opacity:.85;margin-top:2px;white-space:nowrap}
+.brand .upd .ic{width:12px;height:12px}
+.hbtns{display:flex;gap:8px;flex-shrink:0}
+.hbtn{width:40px;height:40px;border:0;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;display:flex;align-items:center;justify-content:center;padding:0}
+.hbtn:active{background:rgba(255,255,255,.3)}
+.hbtn .ic{width:20px;height:20px}
+.hbtn.solid{background:#fff;color:var(--brand)}
+.hbtn.solid:active{background:#eaf1ff}
+
+
 
 .lfwrap{padding:6px 10px 0;background:#f6f8fb}
 .lf{display:block;width:100%;height:36px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font-size:15px;outline:none;background:#fff}
@@ -144,20 +206,21 @@ body:not(.showing) #resultPanel{display:none}
 
 <div class="top">
   <div class="top-row">
-    <div>
-<div class="title">Inventario Magazzino</div>
-
-<div class="upd" id="updTxt">Caricamento...</div>
-
+    <div class="brand">
+      <span class="brand-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></span>
+      <div>
+        <div class="title">Inventario Magazzino</div>
+        <div class="upd"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span id="updTxt">Caricamento...</span></div>
+      </div>
     </div>
-<div style="display:flex;gap:6px"><button class="btn-up" id="btnExc">🚫</button><button class="btn-up" id="btnUp">Carica Excel</button></div>
+<div class="hbtns"><button class="hbtn" id="btnExc" aria-label="Ubicazioni escluse"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg></button><button class="hbtn solid" id="btnUp" aria-label="Carica Excel"><svg class="ic" viewBox="0 0 24 24"><path d="M12 16V4M6.5 9.5L12 4l5.5 5.5M4 20h16"/></svg></button></div>
 
 
     <input type="file" id="fileIn" accept=".xlsx" style="display:none">
   </div>
   <div class="search-wrap">
     <input class="search" id="q" type="text" placeholder="Cerca articolo o ubicazione..." autocomplete="off" autocapitalize="off" spellcheck="false">
-    <button class="clear" id="clr">&times;</button>
+<button class="clear" id="clr" aria-label="Cancella"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     <div class="sugg" id="sugg"></div>
   </div>
 </div>
@@ -165,17 +228,20 @@ body:not(.showing) #resultPanel{display:none}
 <div class="wrap">
   <div class="grid">
     <div class="panel" id="listPanel">
-      <div class="ph"><span>Tutte le ubicazioni</span><small id="listCount"></small><button class="chip" id="selBtn">☑ Seleziona</button></div>
+<div class="ph"><div class="ph-t"><b>Tutte le ubicazioni</b><small id="listCount"></small></div><button class="chip" id="selBtn"><svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><path d="M8 12.5l3 3 5-6"/></svg>Seleziona</button></div>
 
-      <div class="lfwrap"><input class="lf" id="lq" type="text" placeholder="🔍 Filtra ubicazioni (es. A)" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+
+<div class="lfwrap"><div class="lfbox"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input class="lf" id="lq" type="text" placeholder="Filtra ubicazioni (es. A)" autocomplete="off" autocapitalize="off" spellcheck="false"></div></div>
       <div class="filters" id="filters">
-
-        <button class="chip on" data-mode="all">Tutte</button>
-        <button class="chip" data-mode="free">Libere</button>
-        <button class="chip" data-mode="busy">Occupate</button>
-        <button class="chip on" data-sort="asc">↑</button>
-        <button class="chip" data-sort="desc">↓</button>
-
+        <div class="seg">
+          <button class="chip on" data-mode="all">Tutte</button>
+          <button class="chip" data-mode="free">Libere</button>
+          <button class="chip" data-mode="busy">Occupate</button>
+        </div>
+        <div class="seg">
+          <button class="chip on" data-sort="asc" aria-label="Crescente"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/></svg></button>
+          <button class="chip" data-sort="desc" aria-label="Decrescente"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5.5 12.5L12 19l6.5-6.5"/></svg></button>
+        </div>
       </div>
       <div class="list" id="list"></div>
 
@@ -190,14 +256,14 @@ body:not(.showing) #resultPanel{display:none}
 <div class="selbar" id="selBar">
   <span id="selCnt">0 selezionate</span>
   <button id="selAll">Tutte</button>
-  <button id="selGo" class="go">🚫 Escludi</button>
+  <button id="selGo" class="go"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>Escludi</button>
   <button id="selCancel">Annulla</button>
 </div>
 
 <div class="modal" id="excModal">
 
   <div class="mbox">
-    <div class="mh"><b>Ubicazioni escluse</b><button class="mx" id="excClose">&times;</button></div>
+    <div class="mh"><b>Ubicazioni escluse</b><button class="mx" id="excClose" aria-label="Chiudi"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div class="mb">
       <input class="lf" id="exDa" type="text" placeholder="Da (es. A.01.50.03)" autocomplete="off" autocapitalize="characters">
       <input class="lf" id="exA" type="text" placeholder="A (es. A.01.90.03)" autocomplete="off" autocapitalize="characters">
@@ -212,7 +278,7 @@ body:not(.showing) #resultPanel{display:none}
   </div>
 </div>
 
-<button class="fab" id="fab" aria-label="Su">↑</button>
+<button class="fab" id="fab" aria-label="Su"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/></svg></button>
 
 <div class="status" id="status"><div id="statusTxt"></div><div class="bar"><i id="barFill"></i></div></div>
 
@@ -230,6 +296,16 @@ var activeLoc = null;
 var sugg = [];
 
 function $(id){ return document.getElementById(id); }
+
+var IC = {
+  ban: '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
+  chevL: '<path d="M15 5l-7 7 7 7"/>',
+  arrowR: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  selOff: '<rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/>',
+  selOn: '<rect x="3.5" y="3.5" width="17" height="17" rx="4.5" style="fill:currentColor"/><path d="M8 12.5l3 3 5-6" stroke="#fff"/>'
+};
+function ic(n){ return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + IC[n] + '</svg>'; }
+function ckHtml(on){ return '<span class="ck' + (on ? ' on' : '') + '">' + ic(on ? "selOn" : "selOff") + '</span>'; }
 function esc(s){
   return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
@@ -299,7 +375,8 @@ function buildIndex(rows){
 function fmtDate(iso){
   if (!iso) return "Nessun aggiornamento";
   var d = new Date(iso);
-  return "Ultimo aggiornamento: " + d.toLocaleDateString("it-IT") + " " +
+  return "Aggiornato " + d.toLocaleDateString("it-IT") + " " +
+
     d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
 }
 
@@ -347,7 +424,8 @@ function getFiltered(){
 function renderList(){
   var list = getFiltered();
   var total = list.length;
-  $("listCount").textContent = total + " ubicazioni | ascunse: " + (window.HID || 0) + " rânduri";
+  $("listCount").textContent = total + " ubicazioni · " + (window.HID || 0) + " righe nascoste";
+
 
 
   var chips = document.querySelectorAll("#filters .chip");
@@ -391,7 +469,7 @@ function renderList(){
         artHtml(items[0]) + '</span>';
     }
     html += '<button class="loc-row' + (loc === activeLoc ? " active" : "") + (SEL[loc] ? " sel" : "") + '" data-loc="' + esc(loc) + '">' +
-      '<span class="loc-main"><span class="loc-code">' + (selMode ? (SEL[loc] ? "✅ " : "⬜ ") : "") + esc(loc) + '</span>' + artLine + '</span>' +
+      '<span class="loc-main"><span class="loc-code">' + (selMode ? ckHtml(!!SEL[loc]) : "") + esc(loc) + '</span>' + artLine + '</span>' +
 
       (cnt ? '<span class="tag">' + cnt + ' art.</span>' : '<span class="tag empty">libera</span>') +
       '</button>';
@@ -462,13 +540,15 @@ function goBack(){
 function showLocation(loc){
   activeLoc = loc;
   var items = DB.locMap.get(loc) || [];
-  var html = '<button class="back" data-act="back">&lt; Torna alla lista</button>' +
-    '<div class="big-loc">' + esc(loc) + '</div>' +
-    '<button data-act="excl" data-loc="' + esc(loc) + '" style="border:0;background:#fde8ea;color:#b00020;font-weight:700;border-radius:10px;padding:8px 12px;min-height:40px;margin:8px 14px 0">🚫 Escludi ubicazione</button>' +
-
+  var html = '<div class="loc-head">' +
+    '<button class="back" data-act="back" aria-label="Indietro">' + ic("chevL") + '</button>' +
+    '<div class="loc-title"><div class="big-loc">' + esc(loc) + '</div>' +
     '<div class="sub">' + (items.length
-      ? items.length + (items.length === 1 ? " articolo" : " articoli") + " in questa ubicazione"
-      : "Ubicazione libera (nessun articolo)") + '</div>';
+      ? items.length + (items.length === 1 ? " articolo" : " articoli")
+      : "Libera") + '</div></div>' +
+    '<button class="excl-btn" data-act="excl" data-loc="' + esc(loc) + '" aria-label="Escludi ubicazione">' + ic("ban") + '</button>' +
+    '</div>';
+
   if (items.length){
     html += '<table><thead><tr><th>Articolo</th><th>Descrizione</th></tr></thead><tbody>';
     items.forEach(function(r){
@@ -487,7 +567,8 @@ function showArticle(code){
   var desc = recs.length ? (recs[0].descrizione || "") : "";
   var byLoc = new Map();
   recs.forEach(function(r){ byLoc.set(r.ubicazione, true); });
-  var html = '<button class="back" data-act="back">&lt; Torna alla lista</button>' +
+  if (byLoc.size === 1){ showLocation(Array.from(byLoc.keys())[0]); return; }
+  var html = '<button class="back" data-act="back">' + ic("chevL") + ' Torna alla lista</button>' +
     '<div class="art-card" style="border-top:0"><h3>' + esc(code) + '</h3><p>' + esc(desc) + '</p>' +
     '<div class="sub" style="padding:0 0 8px">Si trova in ' + byLoc.size + (byLoc.size === 1 ? " ubicazione:" : " ubicazioni:") + '</div>';
   Array.from(byLoc.keys()).sort(natCmp).forEach(function(loc){
@@ -567,11 +648,18 @@ function runSuggest(){
     if (!locHits.length) return;
     html += '<div class="sg-h">' + (locFirst ? "Ubicazione rilevata" : "Ubicazioni") + '</div>';
     locHits.forEach(function(h){
-      var cnt = DB.locMap.get(h.loc).length;
+      var items = DB.locMap.get(h.loc);
+      var cnt = items.length;
       sugg.push({ type: "loc", key: h.loc });
-      html += '<button class="sg" data-i="' + (sugg.length - 1) + '"><b>' + esc(h.loc) + '</b><span>' +
-        (cnt ? cnt + (cnt === 1 ? " articolo" : " articoli") : "libera") + '</span></button>';
+      var line = cnt
+        ? '<span class="loc-art' + (cnt > 1 ? ' rot' : '') + '" data-loc="' + esc(h.loc) + '" data-i="0">' + artHtml(items[0]) + '</span>'
+        : '';
+      var tag = cnt ? '<span class="tag">' + cnt + ' art.</span>' : '<span class="tag empty">libera</span>';
+      html += '<button class="sg" data-i="' + (sugg.length - 1) + '"><div class="sg-top"><b>' + esc(h.loc) + '</b>' + tag + '</div>' + line + '</button>';
     });
+
+
+
   }
   function addArts(){
     if (!artHits.length) return;
@@ -793,7 +881,7 @@ function renderExc(){
     names.sort(natCmp);
 
     EXC = saveE;
-    h += '<div class="ex-row"><span>' + esc(r.da) + ' → ' + esc(r.a) +
+    h += '<div class="ex-row"><span>' + esc(r.da) + ' ' + ic("arrowR") + ' ' + esc(r.a) +
       '<br><small>' + m + ' | nascoste: ' + hid + '</small>' +
       '<br><small style="color:#b00020">' + esc(names.join(" / ")) + '</small></span><button data-id="' + r.id + '">Elimina</button></div>';
 
@@ -862,7 +950,7 @@ function toggleSel(loc){
   for (var i = 0; i < rows.length; i++){
     if (rows[i].getAttribute("data-loc") === loc){
       rows[i].classList.toggle("sel", !!SEL[loc]);
-      rows[i].querySelector(".loc-code").textContent = (SEL[loc] ? "✅ " : "⬜ ") + loc;
+      rows[i].querySelector(".loc-code").innerHTML = ckHtml(!!SEL[loc]) + esc(loc);
     }
   }
   updBar();
