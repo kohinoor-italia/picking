@@ -185,17 +185,13 @@ function buildIndex(rows){
   DB.last = last;
 }
 
-async function init(){
-  try {
-    var rows = await loadAll();
-    buildIndex(rows);
-    $("updTxt").textContent = fmtDate(DB.last);
-    renderList();
-  } catch (e){
-    $("updTxt").textContent = "Errore di caricamento";
-    $("list").innerHTML = '<div class="msg">Impossibile caricare i dati.<br>' + esc(e.message || e) + '</div>';
-  }
+function fmtDate(iso){
+  if (!iso) return "Nessun aggiornamento";
+  var d = new Date(iso);
+  return "Ultimo aggiornamento: " + d.toLocaleDateString("it-IT") + " " +
+    d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
 }
+
 
 
 async function init(){
