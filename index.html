@@ -902,7 +902,7 @@ async function heartbeat(){
 
 function hbLoop(){
   heartbeat().then(function(){
-    setTimeout(hbLoop, online ? 25000 : 3000);
+    setTimeout(hbLoop, online ? 8000 : 2000);
   });
 }
 
@@ -920,7 +920,7 @@ window.addEventListener("offline", function(){
 });
 
 init();
-setTimeout(hbLoop, 25000);
+setTimeout(hbLoop, 8000);
 
 
 
