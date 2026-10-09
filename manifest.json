@@ -1,0 +1,12 @@
+{
+  "name": "PicKiNg",
+  "short_name": "PicKiNg",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b5fff",
+  "theme_color": "#0b5fff",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
