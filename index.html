@@ -456,6 +456,26 @@ body:not(.showing) #resultPanel{display:none}
   .ex-row button{padding:7px 14px;border-radius:10px;font-size:13px;cursor:pointer;background:#fde8ea;color:#b00020;transition:background .15s,color .15s}
   .ex-row button:hover{background:#b00020;color:#fff}
 }
+
+/* ---- O SINGURĂ COLOANĂ: rând lat per excludere ---- */
+@media (min-width:900px){
+  #exList{grid-template-columns:1fr;gap:10px}
+
+  .ex-row{
+    display:grid;grid-template-columns:260px 1fr auto;
+    align-items:center;gap:8px 24px;padding:14px 20px;
+  }
+  .ex-row:hover{transform:none}
+  .xc-body{display:contents}
+  .xc-head{grid-column:1;grid-row:1;flex-direction:column;align-items:flex-start;gap:8px}
+  .xc-chips{grid-column:2;grid-row:1;max-height:84px;margin:0}
+  .xc-foot{
+    grid-column:3;grid-row:1;flex-direction:column;align-items:flex-end;
+    gap:10px;padding:0;border:0;
+  }
+}
+
+
 /* ================= END FULLSCREEN ================= */
 
 
