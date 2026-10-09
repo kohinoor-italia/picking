@@ -552,8 +552,23 @@ body:not(.showing) #resultPanel{display:none}
   .ex-row{
     display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:10px;
     padding:14px;background:#fff;border:1px solid var(--line);border-radius:14px;
-    box
+    box-shadow:0 2px 8px rgba(20,40,90,.05);
+  }
+  .xc-body{flex:none}
+  .xc-head{align-items:center;justify-content:space-between;gap:8px}
+  .xc-range{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
+  .xc-range .ic{width:14px;height:14px;margin:0;color:var(--brand)}
+  .xc-badge{flex-shrink:0;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;background:#eaf1ff;color:var(--brand)}
+  .xc-chips{max-height:76px;overflow:auto;margin-top:8px;scrollbar-width:thin}
+  .xc-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-top:10px;border-top:1px solid #eef1f6}
+  .xc-count{font-size:13px;color:var(--muted)}
+  .xc-count b{color:var(--ink)}
+  .ex-row button{min-height:40px;padding:8px 18px;border-radius:10px;font-size:14px;background:#fde8ea;color:#b00020}
+}
+
 /* ---- TELEFON: buton Elimina pe toată lățimea ---- */
+
+
 @media (max-width:899px){
   .xc-foot{
     flex-direction:column;align-items:stretch;justify-content:flex-start;
