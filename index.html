@@ -1671,6 +1671,7 @@ function exportPdf(){
     alert("Libreria PDF non caricata. Controlla la connessione e ricarica la pagina.");
     return;
   }
+  var pdfWin = window.open("", "_blank");
   setStatus("Creazione PDF...", 50);
   setTimeout(function(){
     try {
@@ -1730,10 +1731,12 @@ function exportPdf(){
         doc.text(p + " / " + pages, 196, 290, { align: "right" });
       }
 
-      doc.save("inventario_" + new Date().toISOString().slice(0, 10) + ".pdf");
+      var url = doc.output("bloburl");
+      if (pdfWin) pdfWin.location.href = url; else window.location.href = url;
       setStatus("PDF creato.", 100);
       setTimeout(function(){ setStatus("", 0); }, 1500);
     } catch (e){
+      if (pdfWin) pdfWin.close();
       setStatus("Errore PDF: " + (e.message || e), 0, true);
       setTimeout(function(){ setStatus("", 0); }, 5000);
     }
@@ -1913,6 +1916,7 @@ document.addEventListener("click", function(e){
       return;
     }
     if (!EXC.length){ alert("Nessuna esclusione da esportare."); return; }
+    var pdfWin = window.open("", "_blank");
     setStatus("Creazione PDF...", 50);
     setTimeout(function(){
       try {
@@ -1983,10 +1987,12 @@ document.addEventListener("click", function(e){
           doc.text(p + " / " + pages, 196, 290, { align: "right" });
         }
 
-        doc.save("ubicazioni_nascoste_" + new Date().toISOString().slice(0, 10) + ".pdf");
+        var url = doc.output("bloburl");
+        if (pdfWin) pdfWin.location.href = url; else window.location.href = url;
         setStatus("PDF creato.", 100);
         setTimeout(function(){ setStatus("", 0); }, 1500);
       } catch (e){
+        if (pdfWin) pdfWin.close();
         setStatus("Errore PDF: " + (e.message || e), 0, true);
         setTimeout(function(){ setStatus("", 0); }, 5000);
       }
