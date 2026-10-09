@@ -85,7 +85,17 @@ td.code{font-weight:700;white-space:nowrap}
 .lfwrap{padding:6px 10px 0;background:#f6f8fb}
 .lf{display:block;width:100%;height:36px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font-size:15px;outline:none;background:#fff}
 
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:60;display:none;align-items:flex-start;justify-content:center;padding:12px;overflow:auto}
+.modal.on{display:flex}
+.mbox{background:#fff;border-radius:14px;width:100%;max-width:480px;overflow:hidden}
+.mh{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}
+.mx{border:0;background:transparent;font-size:26px;color:var(--muted)}
+.mb{padding:12px 14px;display:grid;gap:8px}
+.ex-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.ex-row button{border:0;background:#fde8ea;color:#b00020;border-radius:8px;padding:6px 10px;font-weight:700}
+
 /* mobile: lista sau rezultat */
+
 
 
 body.showing #listPanel{display:none}
@@ -113,7 +123,8 @@ body:not(.showing) #resultPanel{display:none}
 <div class="upd" id="updTxt">Caricamento...</div>
 
     </div>
-<button class="btn-up" id="btnUp">Carica Excel</button>
+<div style="display:flex;gap:6px"><button class="btn-up" id="btnExc">🚫</button><button class="btn-up" id="btnUp">Carica Excel</button></div>
+
 
     <input type="file" id="fileIn" accept=".xlsx" style="display:none">
   </div>
@@ -148,7 +159,25 @@ body:not(.showing) #resultPanel{display:none}
   </div>
 </div>
 
+<div class="modal" id="excModal">
+  <div class="mbox">
+    <div class="mh"><b>Ubicazioni escluse</b><button class="mx" id="excClose">&times;</button></div>
+    <div class="mb">
+      <input class="lf" id="exDa" type="text" placeholder="Da (es. A.01.50.03)" autocomplete="off" autocapitalize="characters">
+      <input class="lf" id="exA" type="text" placeholder="A (es. A.01.90.03)" autocomplete="off" autocapitalize="characters">
+      <select class="lf" id="exMode">
+        <option value="tutte">Tutte (in ordine)</option>
+        <option value="pari">Solo pari</option>
+        <option value="dispari">Solo dispari</option>
+      </select>
+      <button class="chip on" id="exAdd" style="min-height:40px">Aggiungi esclusione</button>
+      <div id="exList"></div>
+    </div>
+  </div>
+</div>
+
 <div class="status" id="status"><div id="statusTxt"></div><div class="bar"><i id="barFill"></i></div></div>
+
 
 <script>
 var SB_URL = "https://fndjrfieitieqzafhyzz.supabase.co";
@@ -195,7 +224,10 @@ async function loadAll(){
 }
 
 function buildIndex(rows){
+  RAW = rows;
+  rows = rows.filter(function(r){ return !isExcluded(r.ubicazione); });
   var locMap = new Map(), artMap = new Map(), last = null;
+
   rows.forEach(function(r){
     if (!locMap.has(r.ubicazione)) locMap.set(r.ubicazione, []);
     if (r.articolo){
@@ -231,7 +263,9 @@ function fmtDate(iso){
 
 async function init(){
   try {
+    await loadExc();
     var rows = await loadAll();
+
     buildIndex(rows);
     $("updTxt").textContent = fmtDate(DB.last);
     renderList();
@@ -633,7 +667,94 @@ $("lq").addEventListener("input", function(){
   shown = 200;
   renderList();
 });
+var RAW = [];
+var EXC = [];
+
+function isExcluded(loc){
+  var lp = String(loc).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+
+  for (var k = 0; k < EXC.length; k++){
+    var ru = EXC[k];
+    var a = ru.da.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean), b = ru.a.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+
+    if (a.length !== b.length || lp.length !== a.length) continue;
+    var vi = -1;
+    for (var i = 0; i < a.length; i++){ if (a[i] !== b[i]){ vi = i; break; } }
+    var ok = true;
+    for (var j = 0; j < a.length; j++){ if (j !== vi && lp[j] !== a[j]) ok = false; }
+    if (!ok) continue;
+    if (vi === -1) return true;
+    if (!/^\d+$/.test(lp[vi]) || !/^\d+$/.test(a[vi]) || !/^\d+$/.test(b[vi])) continue;
+    var n = parseInt(lp[vi], 10), lo = parseInt(a[vi], 10), hi = parseInt(b[vi], 10);
+    if (lo > hi){ var t = lo; lo = hi; hi = t; }
+    if (n < lo || n > hi) continue;
+    if (ru.modo === "pari" && n % 2 !== 0) continue;
+    if (ru.modo === "dispari" && n % 2 === 0) continue;
+    return true;
+  }
+  return false;
+}
+
+async function loadExc(){
+  var r = await sb.from("ubicazioni_escluse").select("id,da,a,modo").order("id", { ascending: true });
+  if (r.error){ alert("Errore tabella esclusioni: " + r.error.message); EXC = []; }
+  else EXC = r.data;
+
+}
+
+function rebuild(){
+  buildIndex(RAW);
+  activeLoc = null;
+  $("result").innerHTML = '<div class="placeholder">Scegli un\'ubicazione dalla lista o cerca un articolo.</div>';
+  document.body.classList.remove("showing");
+  renderList();
+}
+
+function renderExc(){
+  var h = "";
+  if (!EXC.length) h = '<div class="msg" style="padding:12px">Nessuna esclusione.</div>';
+  EXC.forEach(function(r){
+    var m = r.modo === "pari" ? "solo pari" : (r.modo === "dispari" ? "solo dispari" : "tutte");
+    h += '<div class="ex-row"><span>' + esc(r.da) + ' → ' + esc(r.a) +
+      '<br><small>' + m + '</small></span><button data-id="' + r.id + '">Elimina</button></div>';
+  });
+  $("exList").innerHTML = h;
+}
+
+$("btnExc").addEventListener("click", function(){
+  renderExc();
+  $("excModal").classList.add("on");
+});
+$("excClose").addEventListener("click", function(){
+  $("excModal").classList.remove("on");
+});
+$("exAdd").addEventListener("click", async function(){
+  var da = $("exDa").value.trim().toUpperCase();
+  var a = $("exA").value.trim().toUpperCase();
+  if (!da || !a || da.split(".").length !== a.split(".").length){
+    alert("Formato non valido. Esempio: A.01.50.03");
+    return;
+  }
+  var ins = await sb.from("ubicazioni_escluse").insert({ da: da, a: a, modo: $("exMode").value });
+  if (ins.error){ alert("Errore: " + ins.error.message); return; }
+  $("exDa").value = "";
+  $("exA").value = "";
+  await loadExc();
+  renderExc();
+  rebuild();
+});
+$("exList").addEventListener("click", async function(e){
+  var b = e.target.closest("button[data-id]");
+  if (!b) return;
+  var del = await sb.from("ubicazioni_escluse").delete().eq("id", b.getAttribute("data-id"));
+  if (del.error){ alert("Errore: " + del.error.message); return; }
+  await loadExc();
+  renderExc();
+  rebuild();
+});
+
 init();
+
 
 setInterval(rotateArts, 3000);
 </script>
