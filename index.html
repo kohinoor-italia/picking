@@ -609,6 +609,18 @@ body:not(.showing) #resultPanel{display:none}
   pointer-events:none;
 }
 
+/* ---- FIX: headerul nu mai palpaie la schimbarea ecranului (telefon) ---- */
+@media (max-width:899px){
+  .top{
+    transform:translateZ(0);
+    -webkit-transform:translateZ(0);
+    -webkit-backface-visibility:hidden;
+    backface-visibility:hidden;
+    will-change:transform;
+  }
+  html{background:var(--brand)}
+  body{min-height:100vh;min-height:100dvh}
+}
 
 
 </style>
