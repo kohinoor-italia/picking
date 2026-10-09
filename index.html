@@ -788,6 +788,8 @@ $("exAdd").addEventListener("click", async function(){
 $("exList").addEventListener("click", async function(e){
   var b = e.target.closest("button[data-id]");
   if (!b) return;
+  if (!confirm("Eliminare questa esclusione? L'ubicazione tornerà visibile.")) return;
+
   var del = await sb.from("ubicazioni_escluse").delete().eq("id", b.getAttribute("data-id"));
   if (del.error){ alert("Errore: " + del.error.message); return; }
   await loadExc();
