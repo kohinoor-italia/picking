@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Inventario Magazzino</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f1f4f9; --card:#ffffff; --ink:#1b2430; --muted:#6b7686;
+  --brand:#0b5fff; --brand-d:#0846c2; --line:#dde3ec; --ok:#12805c; --warn:#b26a00;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink);font-size:16px}
+button{font-family:inherit;font-size:inherit;cursor:pointer}
+
+.top{position:sticky;top:0;z-index:20;background:var(--brand);color:#fff;padding:10px 12px 12px}
+.top-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.title{font-size:18px;font-weight:700}
+.upd{font-size:12px;opacity:.9;margin-top:2px}
+.btn-up{background:#fff;color:var(--brand);border:0;border-radius:10px;padding:10px 12px;font-weight:700;min-height:44px}
+.search-wrap{position:relative;max-width:900px;margin:0 auto}
+.search{width:100%;height:50px;border:0;border-radius:12px;padding:0 44px 0 14px;font-size:18px;outline:none}
+.clear{position:absolute;right:4px;top:4px;width:42px;height:42px;border:0;background:transparent;font-size:22px;color:var(--muted);display:none}
+.sugg{position:absolute;left:0;right:0;top:56px;background:#fff;color:var(--ink);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-height:60vh;overflow:auto;display:none}
+.sg-h{padding:8px 14px;font-size:12px;font-weight:700;color:var(--muted);background:#f6f8fb;text-transform:uppercase;letter-spacing:.5px}
+.sg{display:block;width:100%;text-align:left;background:#fff;border:0;border-bottom:1px solid var(--line);padding:12px 14px;min-height:52px}
+.sg:active,.sg:hover{background:#eaf1ff}
+.sg b{display:block;font-size:16px}
+.sg span{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+
+.wrap{max-width:1200px;margin:0 auto;padding:12px}
+.grid{display:grid;grid-template-columns:1fr;gap:12px}
+.panel{background:var(--card);border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden}
+.ph{padding:12px 14px;border-bottom:1px solid var(--line);font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ph small{color:var(--muted);font-weight:400}
+.list{max-height:none}
+.loc-row{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;border-bottom:1px solid var(--line);background:#fff;padding:0 14px;min-height:54px;text-align:left}
+.loc-row:active,.loc-row:hover{background:#eaf1ff}
+.loc-row.active{background:#dce8ff}
+.loc-code{font-weight:700;font-size:17px;letter-spacing:.3px}
+.tag{font-size:13px;border-radius:999px;padding:4px 10px;background:#e7f6ef;color:var(--ok)}
+.tag.empty{background:#f1f1f1;color:var(--muted)}
+.more{display:block;width:100%;border:0;background:#f6f8fb;color:var(--brand);font-weight:700;padding:16px}
+
+.back{display:inline-block;border:0;background:#eaf1ff;color:var(--brand);font-weight:700;border-radius:10px;padding:10px 14px;min-height:44px;margin:12px 14px 0}
+.big-loc{font-size:30px;font-weight:700;color:var(--brand);padding:12px 14px 0;word-break:break-all}
+.sub{padding:2px 14px 12px;color:var(--muted)}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:8px 14px;background:#f6f8fb}
+td{padding:12px 14px;border-top:1px solid var(--line);vertical-align:top}
+tr.clickable{cursor:pointer}
+tr.clickable:hover{background:#eaf1ff}
+td.code{font-weight:700;white-space:nowrap}
+.art-card{padding:12px 14px;border-top:1px solid var(--line)}
+.art-card h3{margin:0 0 2px;font-size:20px}
+.art-card p{margin:0 0 10px;color:var(--muted)}
+.loc-btn{display:inline-block;border:0;background:var(--brand);color:#fff;border-radius:12px;padding:12px 16px;margin:0 8px 8px 0;min-height:48px;font-size:20px;font-weight:700}
+.loc-btn:active{background:var(--brand-d)}
+.loc-btn small{display:block;font-size:12px;font-weight:400;opacity:.9}
+.placeholder{padding:40px 20px;text-align:center;color:var(--muted)}
+.msg{padding:30px 16px;text-align:center;color:var(--muted)}
+
+.status{position:fixed;left:0;right:0;bottom:0;background:#1b2430;color:#fff;padding:10px 14px;font-size:14px;display:none;z-index:50}
+.status.err{background:#b00020}
+.bar{height:6px;background:#3a4656;border-radius:3px;margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:#4cd49a}
+
+/* mobile: lista sau rezultat */
+body.showing #listPanel{display:none}
+body:not(.showing) #resultPanel{display:none}
+
+@media (min-width:900px){
+  .wrap{padding:18px}
+  .grid{grid-template-columns:380px 1fr;gap:18px;align-items:start}
+  body.showing #listPanel,body:not(.showing) #resultPanel{display:block}
+  .back{display:none}
+  .list{max-height:calc(100vh - 200px);overflow:auto}
+  .top{padding:12px 24px 14px}
+  .title{font-size:22px}
+  .loc-row{min-height:46px}
+}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="top-row">
+    <div>
+<div class="title">Inventario Magazzino</div>
+
+<div class="upd" id="updTxt">Caricamento...</div>
+
+    </div>
+<button class="btn-up" id="btnUp">Carica Excel</button>
+
+    <input type="file" id="fileIn" accept=".xlsx" style="display:none">
+  </div>
+  <div class="search-wrap">
+    <input class="search" id="q" type="text" placeholder="Cerca articolo o ubicazione..." autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button class="clear" id="clr">&times;</button>
+    <div class="sugg" id="sugg"></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="grid">
+    <div class="panel" id="listPanel">
+      <div class="ph"><span>Tutte le ubicazioni</span><small id="listCount"></small></div>
+      <div class="list" id="list"></div>
+    </div>
+    <div class="panel" id="resultPanel">
+<div id="result"><div class="placeholder">Scegli un'ubicazione dalla lista o cerca un articolo.</div></div>
+
+    </div>
+  </div>
+</div>
+
+<div class="status" id="status"><div id="statusTxt"></div><div class="bar"><i id="barFill"></i></div></div>
+
+<script>
+var SB_URL = "https://fndjrfieitieqzafhyzz.supabase.co";
+var SB_KEY = "sb_publishable_bHDKjiKAVHqW199ICw7i2g_O3olYMAr";
+var TABLE = "articoli";
+var sb = supabase.createClient(SB_URL, SB_KEY);
+
+var DB = { locs: [], locMap: new Map(), artMap: new Map(), artList: [], last: null };
+var shown = 200;
+var activeLoc = null;
+var sugg = [];
+
+function $(id){ return document.getElementById(id); }
+function esc(s){
+  return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function noDots(s){ return String(s).toLowerCase().replace(/[\s.]/g,""); }
+function natCmp(a,b){ return a.localeCompare(b, "it", { numeric: true }); }
+
+/* ---------- status bar ---------- */
+function setStatus(txt, pct, isErr){
+  var s = $("status");
+  if (!txt){ s.style.display = "none"; return; }
+  s.style.display = "block";
+  s.className = "status" + (isErr ? " err" : "");
+  $("statusTxt").textContent = txt;
+  $("barFill").style.width = (pct || 0) + "%";
+}
+
+/* ---------- load data ---------- */
+async function loadAll(){
+  var all = [], from = 0, step = 1000;
+  while (true){
+    var r = await sb.from(TABLE)
+      .select("cod_magazzino,ubicazione,articolo,descrizione,uploaded_at")
+      .order("id", { ascending: true })
+      .range(from, from + step - 1);
+    if (r.error) throw r.error;
+    all = all.concat(r.data);
+    if (r.data.length < step) break;
+    from += step;
+  }
+  return all;
+}
+
+function buildIndex(rows){
+  var locMap = new Map(), artMap = new Map(), last = null;
+  rows.forEach(function(r){
+    if (!locMap.has(r.ubicazione)) locMap.set(r.ubicazione, []);
+    if (r.articolo){
+      locMap.get(r.ubicazione).push(r);
+      if (!artMap.has(r.articolo)) artMap.set(r.articolo, []);
+      artMap.get(r.articolo).push(r);
+    }
+    if (r.uploaded_at && (!last || r.uploaded_at > last)) last = r.uploaded_at;
+  });
+  DB.locMap = locMap;
+  DB.artMap = artMap;
+  DB.locs = Array.from(locMap.keys()).sort(natCmp);
+  DB.artList = Array.from(artMap.keys()).map(function(code){
+    return { code: code, desc: artMap.get(code)[0].descrizione || "" };
+  });
+  DB.last = last;
+}
+
+async function init(){
+  try {
+    var rows = await loadAll();
+    buildIndex(rows);
+    $("updTxt").textContent = fmtDate(DB.last);
+    renderList();
+  } catch (e){
+    $("updTxt").textContent = "Errore di caricamento";
+    $("list").innerHTML = '<div class="msg">Impossibile caricare i dati.<br>' + esc(e.message || e) + '</div>';
+  }
+}
+
+
+async function init(){
+  try {
+    var rows = await loadAll();
+    buildIndex(rows);
+    $("updTxt").textContent = fmtDate(DB.last);
+    renderList();
+  } catch (e){
+    $("updTxt").textContent = "Eroare la incarcare";
+    $("list").innerHTML = '<div class="msg">Nu s-au putut incarca datele.<br>' + esc(e.message || e) + '</div>';
+  }
+}
+
+/* ---------- home list ---------- */
+function renderList(){
+  var total = DB.locs.length;
+  $("listCount").textContent = total + " ubicazioni";
+  if (!total){
+    $("list").innerHTML = '<div class="msg">Il database e vuoto.<br>Carica un file Excel.</div>';
+    return;
+  }
+  var html = "";
+  var n = Math.min(shown, total);
+  for (var i = 0; i < n; i++){
+    var loc = DB.locs[i];
+    var cnt = DB.locMap.get(loc).length;
+    html += '<button class="loc-row' + (loc === activeLoc ? " active" : "") + '" data-loc="' + esc(loc) + '">' +
+      '<span class="loc-code">' + esc(loc) + '</span>' +
+      (cnt ? '<span class="tag">' + cnt + ' art.</span>' : '<span class="tag empty">libera</span>') +
+      '</button>';
+  }
+  if (n < total){
+    html += '<button class="more" id="moreBtn">Mostra altre (' + (total - n) + ' rimaste)</button>';
+  }
+  $("list").innerHTML = html;
+}
+
+
+$("list").addEventListener("click", function(e){
+  var more = e.target.closest("#moreBtn");
+  if (more){ shown += 300; renderList(); return; }
+  var row = e.target.closest(".loc-row");
+  if (row) showLocation(row.getAttribute("data-loc"));
+});
+
+/* ---------- result views ---------- */
+function openResult(html){
+  $("result").innerHTML = html;
+  document.body.classList.add("showing");
+  window.scrollTo(0, 0);
+}
+function goBack(){
+  document.body.classList.remove("showing");
+  window.scrollTo(0, 0);
+}
+
+function showLocation(loc){
+  activeLoc = loc;
+  var items = DB.locMap.get(loc) || [];
+  var html = '<button class="back" data-act="back">&lt; Torna alla lista</button>' +
+    '<div class="big-loc">' + esc(loc) + '</div>' +
+    '<div class="sub">' + (items.length
+      ? items.length + (items.length === 1 ? " articolo" : " articoli") + " in questa ubicazione"
+      : "Ubicazione libera (nessun articolo)") + '</div>';
+  if (items.length){
+    html += '<table><thead><tr><th>Articolo</th><th>Descrizione</th></tr></thead><tbody>';
+    items.forEach(function(r){
+      html += '<tr class="clickable" data-art="' + esc(r.articolo) + '"><td class="code">' + esc(r.articolo) +
+        '</td><td>' + esc(r.descrizione || "") + '</td></tr>';
+    });
+    html += '</tbody></table>';
+  }
+  openResult(html);
+  markActive();
+}
+
+
+function showArticle(code){
+  var recs = DB.artMap.get(code) || [];
+  var desc = recs.length ? (recs[0].descrizione || "") : "";
+  var byLoc = new Map();
+  recs.forEach(function(r){ byLoc.set(r.ubicazione, true); });
+  var html = '<button class="back" data-act="back">&lt; Torna alla lista</button>' +
+    '<div class="art-card" style="border-top:0"><h3>' + esc(code) + '</h3><p>' + esc(desc) + '</p>' +
+    '<div class="sub" style="padding:0 0 8px">Si trova in ' + byLoc.size + (byLoc.size === 1 ? " ubicazione:" : " ubicazioni:") + '</div>';
+  Array.from(byLoc.keys()).sort(natCmp).forEach(function(loc){
+    var others = DB.locMap.get(loc).length;
+    html += '<button class="loc-btn" data-loc="' + esc(loc) + '">' + esc(loc) +
+      '<small>' + others + ' art. qui</small></button>';
+  });
+  html += '</div>';
+  openResult(html);
+}
+
+
+function markActive(){
+  var rows = document.querySelectorAll(".loc-row");
+  for (var i = 0; i < rows.length; i++){
+    rows[i].classList.toggle("active", rows[i].getAttribute("data-loc") === activeLoc);
+  }
+}
+
+$("result").addEventListener("click", function(e){
+  if (e.target.closest('[data-act="back"]')){ goBack(); return; }
+  var lb = e.target.closest(".loc-btn");
+  if (lb){ showLocation(lb.getAttribute("data-loc")); return; }
+  var tr = e.target.closest("tr[data-art]");
+  if (tr){ showArticle(tr.getAttribute("data-art")); }
+});
+
+/* ---------- search ---------- */
+function runSuggest(){
+  var raw = $("q").value.trim();
+  $("clr").style.display = $("q").value ? "block" : "none";
+  var box = $("sugg");
+  if (raw.length < 2){ box.style.display = "none"; sugg = []; return; }
+
+  var qn = raw.toLowerCase();
+  var tokens = qn.split(/\s+/).filter(Boolean);
+  var qd = noDots(raw);
+
+  /* ubicazioni: punctele din ce scrii si din baza de date sunt ignorate */
+  var locHits = [];
+  for (var i = 0; i < DB.locs.length; i++){
+    var ld = noDots(DB.locs[i]);
+    var p = ld.indexOf(qd);
+    if (p !== -1) locHits.push({ loc: DB.locs[i], pos: p, exact: (ld === qd) });
+  }
+  locHits.sort(function(a,b){
+    if (a.exact !== b.exact) return a.exact ? -1 : 1;
+    return a.pos - b.pos || natCmp(a.loc, b.loc);
+  });
+  locHits = locHits.slice(0, 8);
+  var locFirst = locHits.length > 0 && locHits[0].exact;
+
+  /* articole */
+  var artHits = [];
+  for (var j = 0; j < DB.artList.length; j++){
+    var a = DB.artList[j];
+    var hay = (a.code + " " + a.desc).toLowerCase();
+    var ok = true;
+    for (var t = 0; t < tokens.length; t++){
+      if (hay.indexOf(tokens[t]) === -1){ ok = false; break; }
+    }
+    if (ok){
+      var score = a.code.toLowerCase().indexOf(qn) === 0 ? 0 : (a.code.toLowerCase().indexOf(qn) > 0 ? 1 : 2);
+      artHits.push({ a: a, score: score });
+    }
+  }
+  artHits.sort(function(x,y){ return x.score - y.score || natCmp(x.a.code, y.a.code); });
+  artHits = artHits.slice(0, 15);
+
+  sugg = [];
+  var html = "";
+
+  function addLocs(){
+    if (!locHits.length) return;
+    html += '<div class="sg-h">' + (locFirst ? "Ubicazione rilevata" : "Ubicazioni") + '</div>';
+    locHits.forEach(function(h){
+      var cnt = DB.locMap.get(h.loc).length;
+      sugg.push({ type: "loc", key: h.loc });
+      html += '<button class="sg" data-i="' + (sugg.length - 1) + '"><b>' + esc(h.loc) + '</b><span>' +
+        (cnt ? cnt + (cnt === 1 ? " articolo" : " articoli") : "libera") + '</span></button>';
+    });
+  }
+  function addArts(){
+    if (!artHits.length) return;
+    html += '<div class="sg-h">Articoli</div>';
+    artHits.forEach(function(h){
+      var locs = {};
+      DB.artMap.get(h.a.code).forEach(function(r){ locs[r.ubicazione] = 1; });
+      var ll = Object.keys(locs).sort(natCmp);
+      var hint = ll.slice(0, 3).join(", ") + (ll.length > 3 ? " +" + (ll.length - 3) : "");
+      sugg.push({ type: "art", key: h.a.code });
+      html += '<button class="sg" data-i="' + (sugg.length - 1) + '"><b>' + esc(h.a.code) + '</b><span>' +
+        esc(h.a.desc) + ' | ' + esc(hint) + '</span></button>';
+    });
+  }
+
+  if (locFirst){ addLocs(); addArts(); } else { addArts(); addLocs(); }
+
+  if (!sugg.length) html = '<div class="msg">Nessun risultato</div>';
+  box.innerHTML = html;
+  box.style.display = "block";
+}
+
+
+function pickSuggestion(i){
+  var s = sugg[i];
+  if (!s) return;
+  $("sugg").style.display = "none";
+  $("q").blur();
+  if (s.type === "loc") showLocation(s.key); else showArticle(s.key);
+}
+
+$("q").addEventListener("input", runSuggest);
+$("q").addEventListener("keydown", function(e){
+  if (e.key === "Enter"){
+    e.preventDefault();
+    if (sugg.length) pickSuggestion(0);
+  }
+});
+$("sugg").addEventListener("click", function(e){
+  var b = e.target.closest(".sg");
+  if (b) pickSuggestion(parseInt(b.getAttribute("data-i"), 10));
+});
+$("clr").addEventListener("click", function(){
+  $("q").value = "";
+  runSuggest();
+  $("q").focus();
+});
+document.addEventListener("click", function(e){
+  if (!e.target.closest(".search-wrap")) $("sugg").style.display = "none";
+});
+
+/* ---------- upload excel ---------- */
+var unlocked = false;
+$("btnUp").addEventListener("click", function(){
+  if (!unlocked){
+    var pw = prompt("Password per aggiornare il database:");
+    if (pw === null) return;
+    if (pw !== "kin2026"){
+      alert("Password errata.");
+      return;
+    }
+    unlocked = true;
+  }
+  $("fileIn").click();
+});
+
+$("fileIn").addEventListener("change", function(){
+  var f = this.files[0];
+  this.value = "";
+  if (f) handleFile(f);
+});
+
+function pickCol(header, names, fallbackIdx){
+  for (var i = 0; i < header.length; i++){
+    var h = String(header[i]).trim().toLowerCase();
+    if (names.indexOf(h) !== -1) return i;
+  }
+  return fallbackIdx;
+}
+
+async function handleFile(file){
+  try {
+    setStatus("Lettura del file...", 5);
+    var buf = await file.arrayBuffer();
+    var wb = XLSX.read(buf, { type: "array" });
+    var sheet = wb.Sheets[wb.SheetNames[0]];
+    var data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: true });
+    if (data.length < 2) throw new Error("Il file non contiene dati.");
+
+    var hd = data[0];
+    var cMag = pickCol(hd, ["cod magazzino"], 0);
+    var cUb  = pickCol(hd, ["cod ubicazione", "ubicazione"], 1);
+    var cArt = pickCol(hd, ["articolo"], 2);
+    var cDes = pickCol(hd, ["descrizione"], 3);
+
+    var batch = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    var ts = new Date().toISOString();
+    var rows = [];
+    for (var i = 1; i < data.length; i++){
+      var r = data[i];
+      var ub = String(r[cUb] == null ? "" : r[cUb]).trim();
+      if (!ub) continue;
+      var art = String(r[cArt] == null ? "" : r[cArt]).trim();
+      var des = String(r[cDes] == null ? "" : r[cDes]).trim();
+      var mag = String(r[cMag] == null ? "" : r[cMag]).trim();
+      rows.push({
+        cod_magazzino: mag || null,
+        ubicazione: ub,
+        articolo: art || null,
+        descrizione: des || null,
+        batch_id: batch,
+        uploaded_at: ts
+      });
+    }
+    if (!rows.length) throw new Error("Nessuna riga valida trovata.");
+
+    setStatus("", 0);
+    var okGo = confirm("Il database attuale verra CANCELLATO completamente e sostituito con " + rows.length + " righe dal file '" + file.name + "'. Continuare?");
+    if (!okGo) return;
+
+    /* 1. inserimento dati nuovi */
+    var chunk = 500;
+    try {
+      for (var k = 0; k < rows.length; k += chunk){
+        var part = rows.slice(k, k + chunk);
+        var ins = await sb.from(TABLE).insert(part);
+        if (ins.error) throw ins.error;
+        setStatus("Caricamento nuovi dati... " + Math.min(k + chunk, rows.length) + " / " + rows.length,
+          10 + Math.round(80 * Math.min(k + chunk, rows.length) / rows.length));
+      }
+    } catch (e1){
+      await sb.from(TABLE).delete().eq("batch_id", batch);
+      throw e1;
+    }
+
+    /* 2. cancellazione dati vecchi */
+    setStatus("Cancellazione dati vecchi...", 95);
+    var del = await sb.from(TABLE).delete().neq("batch_id", batch);
+    if (del.error) throw del.error;
+
+    /* 3. ricaricamento */
+    setStatus("Aggiornamento...", 98);
+    var fresh = await loadAll();
+    buildIndex(fresh);
+    shown = 200;
+    activeLoc = null;
+    $("updTxt").textContent = fmtDate(DB.last);
+    $("result").innerHTML = '<div class="placeholder">Scegli un\'ubicazione dalla lista o cerca un articolo.</div>';
+    document.body.classList.remove("showing");
+    renderList();
+    setStatus("Fatto! " + rows.length + " righe caricate.", 100);
+    setTimeout(function(){ setStatus("", 0); }, 2500);
+  } catch (e){
+    setStatus("Errore: " + (e.message || e), 0, true);
+    setTimeout(function(){ setStatus("", 0); }, 6000);
+  }
+}
+
+
+init();
+</script>
+</body>
+</html>
