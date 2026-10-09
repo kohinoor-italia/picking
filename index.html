@@ -11,6 +11,9 @@
 <title>Inventario Magazzino</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
 <style>
 :root{
   --bg:#f1f4f9; --card:#ffffff; --ink:#1b2430; --muted:#6b7686;
@@ -252,7 +255,7 @@ body:not(.showing) #resultPanel{display:none}
 <div class="wrap">
   <div class="grid">
     <div class="panel" id="listPanel">
-<div class="ph"><div class="ph-t"><b>Tutte le ubicazioni</b><small id="listCount"></small></div><button class="chip" id="selBtn"><svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><path d="M8 12.5l3 3 5-6"/></svg>Seleziona</button></div>
+<div class="ph"><div class="ph-t"><b>Tutte le ubicazioni</b><small id="listCount"></small></div><div style="display:flex;gap:6px"><button class="chip" id="pdfBtn" style="background:#eaf1ff;color:var(--brand);border-color:#eaf1ff;min-height:34px;padding:6px 12px;font-size:14px"><svg class="ic" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5z"/><path d="M14 3v5h5M12 11v6M9.5 14.5L12 17l2.5-2.5"/></svg>PDF</button><button class="chip" id="selBtn"><svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><path d="M8 12.5l3 3 5-6"/></svg>Seleziona</button></div></div>
 
 
 <div class="lfwrap"><div class="lfbox"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input class="lf" id="lq" type="text" placeholder="Filtra ubicazioni (es. A)" autocomplete="off" autocapitalize="off" spellcheck="false"></div></div>
@@ -1086,29 +1089,57 @@ async function softRefresh(){
   $("updTxt").textContent = fmtDate(DB.last);
 }
 
+var fails = 0;
+
+async function pingOnce(){
+  var ctrl = new AbortController();
+  var timer = setTimeout(function(){ ctrl.abort(); }, 10000);
+  try {
+    var r = await sb.from(TABLE).select("id").limit(1).abortSignal(ctrl.signal);
+    if (r.error) throw r.error;
+    return true;
+  } catch (e){
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function heartbeat(){
   if (busyHB) return;
   busyHB = true;
-  try {
-    var r = await withTimeout(sb.from(TABLE).select("id").limit(1), 6000);
-    if (r.error) throw r.error;
+  var ok = await pingOnce();
+  if (!ok){
+    await new Promise(function(res){ setTimeout(res, 1500); });
+    ok = await pingOnce();
+  }
+  if (ok){
+    fails = 0;
     lastOk = Date.now();
     if (!online){
       online = true;
       setStatus("Connessione ripristinata", 100);
-      await softRefresh();
-      setTimeout(function(){ setStatus("", 0); }, 1500);
+      try {
+        await softRefresh();
+        setTimeout(function(){ setStatus("", 0); }, 1500);
+      } catch (e){
+        online = false;
+        setStatus("Connessione persa... riprovo", 0, true);
+      }
     }
-  } catch (e){
-    online = false;
-    setStatus("Connessione persa... riprovo", 0, true);
+  } else {
+    fails++;
+    if (fails >= 2 && online){
+      online = false;
+      setStatus("Connessione persa... riprovo", 0, true);
+    }
   }
   busyHB = false;
 }
 
 function hbLoop(){
   heartbeat().then(function(){
-    setTimeout(hbLoop, online ? 8000 : 2000);
+    setTimeout(hbLoop, (online && !fails) ? 15000 : 3000);
   });
 }
 
@@ -1133,6 +1164,83 @@ setTimeout(hbLoop, 8000);
 
 
 setInterval(rotateArts, 3000);
+
+function exportPdf(){
+  var list = getFiltered();
+  if (!list.length){ alert("Nessuna ubicazione da esportare."); return; }
+  if (!window.jspdf || !window.jspdf.jsPDF){
+    alert("Libreria PDF non caricata. Controlla la connessione e ricarica la pagina.");
+    return;
+  }
+  setStatus("Creazione PDF...", 50);
+  setTimeout(function(){
+    try {
+      var doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4" });
+      var body = [], nArt = 0;
+
+      list.forEach(function(loc){
+        var items = DB.locMap.get(loc) || [];
+        if (!items.length){
+          body.push([
+            { content: loc, styles: { fontStyle: "bold" } },
+            "",
+            { content: "libera", styles: { textColor: [120, 130, 145], fontStyle: "italic" } }
+          ]);
+          return;
+        }
+        items.forEach(function(r, idx){
+          nArt++;
+          var row = [];
+          if (idx === 0) row.push({ content: loc, rowSpan: items.length, styles: { fontStyle: "bold", valign: "top" } });
+          row.push(r.articolo || "", r.descrizione || "");
+          body.push(row);
+        });
+      });
+
+      var f = [];
+      f.push({ all: "Tutte", free: "Libere", busy: "Occupate" }[fMode]);
+      if (fPar !== "all") f.push(fPar === "even" ? "Pari" : "Dispari");
+      if (fLvl !== "all") f.push("Livello " + fLvl);
+      if ($("lq").value.trim()) f.push("Ricerca: " + $("lq").value.trim());
+      f.push(fSort === "asc" ? "Ordine crescente" : "Ordine decrescente");
+
+      doc.setFontSize(16);
+      doc.setTextColor(27, 36, 48);
+      doc.text("Inventario Magazzino", 14, 15);
+      doc.setFontSize(9);
+      doc.setTextColor(107, 118, 134);
+      doc.text("Filtri: " + f.join(" | "), 14, 21);
+      doc.text(list.length + " ubicazioni | " + nArt + " articoli | " + new Date().toLocaleDateString("it-IT"), 14, 26);
+
+      doc.autoTable({
+        startY: 30,
+        head: [["Ubicazione", "Articolo", "Descrizione"]],
+        body: body,
+        theme: "grid",
+        styles: { fontSize: 9, cellPadding: 1.8, lineColor: [221, 227, 236], lineWidth: 0.2, textColor: [27, 36, 48] },
+        headStyles: { fillColor: [11, 95, 255], textColor: 255 },
+        columnStyles: { 0: { cellWidth: 32 }, 1: { cellWidth: 40 } },
+        margin: { left: 14, right: 14, bottom: 14 }
+      });
+
+      var pages = doc.internal.getNumberOfPages();
+      for (var p = 1; p <= pages; p++){
+        doc.setPage(p);
+        doc.setFontSize(8);
+        doc.setTextColor(107, 118, 134);
+        doc.text(p + " / " + pages, 196, 290, { align: "right" });
+      }
+
+      doc.save("inventario_" + new Date().toISOString().slice(0, 10) + ".pdf");
+      setStatus("PDF creato.", 100);
+      setTimeout(function(){ setStatus("", 0); }, 1500);
+    } catch (e){
+      setStatus("Errore PDF: " + (e.message || e), 0, true);
+      setTimeout(function(){ setStatus("", 0); }, 5000);
+    }
+  }, 50);
+}
+$("pdfBtn").addEventListener("click", exportPdf);
 
 $("fab").addEventListener("click", function(){
   $("excModal").classList.remove("on");
