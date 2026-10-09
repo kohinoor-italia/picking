@@ -553,6 +553,22 @@ body:not(.showing) #resultPanel{display:none}
     display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:10px;
     padding:14px;background:#fff;border:1px solid var(--line);border-radius:14px;
     box
+/* ---- TELEFON: buton Elimina pe toată lățimea ---- */
+@media (max-width:899px){
+  .xc-foot{
+    flex-direction:column;align-items:stretch;justify-content:flex-start;
+    gap:10px;padding-top:12px;
+  }
+  .xc-count{text-align:left}
+  .ex-row button[data-id]{
+    width:100%;margin:0;min-height:44px;padding:0 16px;
+    display:flex;align-items:center;justify-content:center;
+    border:1px solid #f4c3c9;border-radius:12px;
+    background:#fff5f6;color:#b00020;
+    font-size:15px;font-weight:700;letter-spacing:.2px;
+  }
+  .ex-row button[data-id]:active{background:#b00020;color:#fff;border-color:#b00020}
+}
 
 
 /* ================= END FULLSCREEN ================= */
