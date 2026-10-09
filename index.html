@@ -1899,6 +1899,32 @@ document.addEventListener("click", function(e){
 })();
 
 
+/* ---------- X din cautare: inapoi la pagina principala ---------- */
+(function(){
+  var clr = $("clr");
+
+  /* butonul X nu mai fura focusul de la bara de cautare (tastatura ramane deschisa) */
+  clr.addEventListener("mousedown", function(e){ e.preventDefault(); });
+  clr.addEventListener("touchstart", function(e){ e.preventDefault(); }, { passive: false });
+
+  clr.addEventListener("click", function(){
+    $("sugg").style.display = "none";
+
+    $("excModal").classList.remove("on");
+    if (selMode) exitSel();
+
+    activeLoc = null;
+    $("result").innerHTML = '<div class="placeholder">Scegli un\'ubicazione dalla lista o cerca un articolo.</div>';
+    document.body.classList.remove("showing");
+    markActive();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    $("q").focus();
+  });
+})();
+
+
+
 </script>
 
 </body>
