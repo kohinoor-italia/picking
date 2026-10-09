@@ -1768,22 +1768,6 @@ document.addEventListener("click", function(e){
 })();
 
 
-/* ---------- PDF UBICAZIONI ESCLUSE ---------- */
-(function(){
-  var btn = document.createElement("button");
-  btn.id = "exPdf";
-  btn.type = "button";
-  btn.innerHTML = '<svg class="ic" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5z"/><path d="M14 3v5h5M12 11v6M9.5 14.5L12 17l2.5-2.5"/></svg>PDF';
-  var mh = document.querySelector("#excModal .mh");
-  var wrap = document.createElement("div");
-  wrap.className = "mh-act";
-  mh.insertBefore(wrap, $("excClose"));
-  wrap.appendChild(btn);
-  wrap.appendChild($("excClose"));
-
-  function modoTxt(m){ return m === "pari" ? "Solo pari" : (m === "dispari" ? "Solo dispari" : "Tutte"); }
-  function grpOf(l){ return l.split(".").slice(0, 2).join(".").toUpperCase(); }
-
   function makePdf(){
     if (!window.jspdf || !window.jspdf.jsPDF){
       alert("Libreria PDF non caricata. Controlla la connessione e ricarica la pagina.");
@@ -1792,25 +1776,16 @@ document.addEventListener("click", function(e){
     if (!EXC.length){ alert("Nessuna esclusione da esportare."); return; }
     setStatus("Creazione PDF...", 50);
     setTimeout(function(){
-      var saveE = EXC;
       try {
-        var seen = {}, all = [];
+        var seen = {}, hidden = [];
         RAW.forEach(function(x){
-          if (!seen[x.ubicazione]){ seen[x.ubicazione] = 1; all.push(x.ubicazione); }
+          var l = x.ubicazione;
+          if (seen[l]) return;
+          seen[l] = 1;
+          if (!BUSY[l] && isExcluded(l)) hidden.push(l);
         });
+        hidden.sort(natCmp);
 
-        var rules = EXC.slice().sort(function(x, y){
-          return natCmp(String(x.da), String(y.da)) || natCmp(String(x.a), String(y.a));
-        });
-        var ruleBody = rules.map(function(r, i){
-          EXC = [r];
-          var n = 0;
-          all.forEach(function(l){ if (!BUSY[l] && isExcluded(l)) n++; });
-          return [String(i + 1), r.da, r.a, modoTxt(r.modo), String(n)];
-        });
-        EXC = saveE;
-
-        var hidden = all.filter(function(l){ return !BUSY[l] && isExcluded(l); }).sort(natCmp);
         var groups = {}, order = [];
         hidden.forEach(function(l){
           var g = grpOf(l);
@@ -1820,64 +1795,19 @@ document.addEventListener("click", function(e){
 
         var doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4" });
 
-        /* antet */
-        doc.setFillColor(11, 95, 255);
-        doc.rect(0, 0, 210, 26, "F");
-        doc.setTextColor(255, 255, 255);
+        doc.setTextColor(27, 36, 48);
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(18);
-        doc.text("Ubicazioni escluse", 14, 12);
+        doc.setFontSize(16);
+        doc.text("Ubicazioni nascoste per gruppo", 14, 16);
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
-        doc.text("Inventario Magazzino | " + new Date().toLocaleDateString("it-IT"), 14, 19);
+        doc.setTextColor(107, 118, 134);
+        doc.text(hidden.length + " ubicazioni | " + order.length + " gruppi | " + new Date().toLocaleDateString("it-IT"), 14, 22);
 
-        /* contatori */
-        function box(x, val, label){
-          doc.setFillColor(238, 243, 252);
-          doc.roundedRect(x, 32, 58, 18, 3, 3, "F");
-          doc.setTextColor(11, 95, 255);
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(16);
-          doc.text(String(val), x + 5, 42);
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(8);
-          doc.setTextColor(107, 118, 134);
-          doc.text(label, x + 5, 47);
-        }
-        box(14, rules.length, "Regole di esclusione");
-        box(76, hidden.length, "Ubicazioni nascoste");
-        box(138, order.length, "Gruppi interessati");
-
-        /* tabel reguli */
-        doc.setTextColor(27, 36, 48);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(12);
-        doc.text("Regole di esclusione", 14, 60);
-        doc.autoTable({
-          startY: 63,
-          head: [["#", "Da", "A", "Modo", "Nascoste"]],
-          body: ruleBody,
-          theme: "grid",
-          styles: { fontSize: 9, cellPadding: 2, lineColor: [221, 227, 236], lineWidth: 0.2, textColor: [27, 36, 48] },
-          headStyles: { fillColor: [11, 95, 255], textColor: 255 },
-          alternateRowStyles: { fillColor: [247, 249, 253] },
-          columnStyles: { 0: { cellWidth: 12, halign: "center" }, 4: { cellWidth: 24, halign: "center" } },
-          margin: { left: 14, right: 14, bottom: 16 }
-        });
-
-        /* ubicatii pe grupuri */
-        var y = doc.lastAutoTable.finalY + 12;
-        if (y > 255){ doc.addPage(); y = 20; }
-        doc.setTextColor(27, 36, 48);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(12);
-        doc.text("Ubicazioni nascoste per gruppo", 14, y);
-        var startY = y + 4;
+        var startY = 28;
 
         if (!order.length){
-          doc.setFont("helvetica", "normal");
           doc.setFontSize(10);
-          doc.setTextColor(107, 118, 134);
           doc.text("Nessuna ubicazione libera corrisponde alle esclusioni.", 14, startY + 6);
         }
 
@@ -1898,19 +1828,12 @@ document.addEventListener("click", function(e){
             body: rows,
             theme: "grid",
             styles: { fontSize: 9, cellPadding: 2, lineColor: [221, 227, 236], lineWidth: 0.2, textColor: [27, 36, 48], halign: "center" },
-            headStyles: { fillColor: [8, 70, 194], textColor: 255, fontSize: 10 },
+            headStyles: { fillColor: [11, 95, 255], textColor: 255, fontSize: 10 },
             alternateRowStyles: { fillColor: [247, 249, 253] },
             margin: { left: 14, right: 14, bottom: 16 }
           });
           startY = doc.lastAutoTable.finalY + 6;
         });
-
-        /* nota + numere de pagina */
-        if (startY > 275){ doc.addPage(); startY = 20; }
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(8);
-        doc.setTextColor(107, 118, 134);
-        doc.text("Le ubicazioni occupate restano sempre visibili e non sono incluse in questo elenco.", 14, startY + 2);
 
         var pages = doc.internal.getNumberOfPages();
         for (var p = 1; p <= pages; p++){
@@ -1921,20 +1844,17 @@ document.addEventListener("click", function(e){
           doc.text(p + " / " + pages, 196, 290, { align: "right" });
         }
 
-        doc.save("ubicazioni_escluse_" + new Date().toISOString().slice(0, 10) + ".pdf");
+        doc.save("ubicazioni_nascoste_" + new Date().toISOString().slice(0, 10) + ".pdf");
         setStatus("PDF creato.", 100);
         setTimeout(function(){ setStatus("", 0); }, 1500);
       } catch (e){
         setStatus("Errore PDF: " + (e.message || e), 0, true);
         setTimeout(function(){ setStatus("", 0); }, 5000);
-      } finally {
-        EXC = saveE;
       }
     }, 50);
   }
 
-  btn.addEventListener("click", makePdf);
-})();
+
 
 
 </script>
