@@ -77,7 +77,17 @@ td.code{font-weight:700;white-space:nowrap}
 .bar{height:6px;background:#3a4656;border-radius:3px;margin-top:6px;overflow:hidden}
 .bar i{display:block;height:100%;width:0;background:#4cd49a}
 
+.filters{display:flex;flex-wrap:nowrap;gap:5px;padding:6px 10px;border-bottom:1px solid var(--line);background:#f6f8fb;overflow-x:auto}
+.chip{flex-shrink:0;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;padding:4px 10px;min-height:30px;font-size:13px;font-weight:700}
+
+.chip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+
+.lfwrap{padding:6px 10px 0;background:#f6f8fb}
+.lf{display:block;width:100%;height:36px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font-size:15px;outline:none;background:#fff}
+
 /* mobile: lista sau rezultat */
+
+
 body.showing #listPanel{display:none}
 body:not(.showing) #resultPanel{display:none}
 
@@ -118,7 +128,18 @@ body:not(.showing) #resultPanel{display:none}
   <div class="grid">
     <div class="panel" id="listPanel">
       <div class="ph"><span>Tutte le ubicazioni</span><small id="listCount"></small></div>
+      <div class="lfwrap"><input class="lf" id="lq" type="text" placeholder="🔍 Filtra ubicazioni (es. A)" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+      <div class="filters" id="filters">
+
+        <button class="chip on" data-mode="all">Tutte</button>
+        <button class="chip" data-mode="free">Libere</button>
+        <button class="chip" data-mode="busy">Occupate</button>
+        <button class="chip on" data-sort="asc">↑</button>
+        <button class="chip" data-sort="desc">↓</button>
+
+      </div>
       <div class="list" id="list"></div>
+
     </div>
     <div class="panel" id="resultPanel">
 <div id="result"><div class="placeholder">Scegli un'ubicazione dalla lista o cerca un articolo.</div></div>
@@ -225,17 +246,50 @@ function artHtml(r){
   return '<b>' + esc(r.articolo) + '</b> ' + esc(r.descrizione || "");
 }
 
+var fMode = "all";
+var fSort = "asc";
+
+function getFiltered(){
+  var arr = DB.locs.filter(function(loc){
+    var cnt = DB.locMap.get(loc).length;
+    if (fMode === "free") return cnt === 0;
+    if (fMode === "busy") return cnt > 0;
+    return true;
+  });
+  var qv = noDots($("lq").value);
+  if (qv){
+    arr = arr.filter(function(loc){ return noDots(loc).indexOf(qv) === 0; });
+
+  }
+  if (fSort === "desc") arr.reverse();
+
+  return arr;
+}
+
 function renderList(){
-  var total = DB.locs.length;
+  var list = getFiltered();
+  var total = list.length;
   $("listCount").textContent = total + " ubicazioni";
-  if (!total){
+
+  var chips = document.querySelectorAll("#filters .chip");
+  for (var c = 0; c < chips.length; c++){
+    var m = chips[c].getAttribute("data-mode");
+    var s = chips[c].getAttribute("data-sort");
+    chips[c].classList.toggle("on", m ? m === fMode : s === fSort);
+  }
+
+  if (!DB.locs.length){
     $("list").innerHTML = '<div class="msg">Il database e vuoto.<br>Carica un file Excel.</div>';
+    return;
+  }
+  if (!total){
+    $("list").innerHTML = '<div class="msg">Nessuna ubicazione trovata.</div>';
     return;
   }
   var html = "";
   var n = Math.min(shown, total);
   for (var i = 0; i < n; i++){
-    var loc = DB.locs[i];
+    var loc = list[i];
     var items = DB.locMap.get(loc);
     var cnt = items.length;
     var artLine = "";
@@ -253,6 +307,16 @@ function renderList(){
   }
   $("list").innerHTML = html;
 }
+
+$("filters").addEventListener("click", function(e){
+  var b = e.target.closest(".chip");
+  if (!b) return;
+  if (b.getAttribute("data-mode")) fMode = b.getAttribute("data-mode");
+  if (b.getAttribute("data-sort")) fSort = b.getAttribute("data-sort");
+  shown = 200;
+  renderList();
+});
+
 
 function rotateArts(){
   var els = document.querySelectorAll(".loc-art.rot");
@@ -565,7 +629,12 @@ async function handleFile(file){
 }
 
 
+$("lq").addEventListener("input", function(){
+  shown = 200;
+  renderList();
+});
 init();
+
 setInterval(rotateArts, 3000);
 </script>
 
