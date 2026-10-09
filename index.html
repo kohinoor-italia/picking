@@ -1768,6 +1768,22 @@ document.addEventListener("click", function(e){
 })();
 
 
+/* ---------- PDF UBICAZIONI ESCLUSE ---------- */
+(function(){
+  var btn = document.createElement("button");
+  btn.id = "exPdf";
+  btn.type = "button";
+  btn.innerHTML = '<svg class="ic" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5z"/><path d="M14 3v5h5M12 11v6M9.5 14.5L12 17l2.5-2.5"/></svg>PDF';
+  var mh = document.querySelector("#excModal .mh");
+  var wrap = document.createElement("div");
+  wrap.className = "mh-act";
+  mh.insertBefore(wrap, $("excClose"));
+  wrap.appendChild(btn);
+  wrap.appendChild($("excClose"));
+
+  function modoTxt(m){ return m === "pari" ? "Solo pari" : (m === "dispari" ? "Solo dispari" : "Tutte"); }
+  function grpOf(l){ return l.split(".").slice(0, 2).join(".").toUpperCase(); }
+
   function makePdf(){
     if (!window.jspdf || !window.jspdf.jsPDF){
       alert("Libreria PDF non caricata. Controlla la connessione e ricarica la pagina.");
