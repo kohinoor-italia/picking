@@ -186,7 +186,13 @@ function buildIndex(rows){
   });
   DB.locMap = locMap;
   DB.artMap = artMap;
+  locMap.forEach(function(arr){
+    arr.sort(function(a, b){
+      return natCmp(a.articolo || "", b.articolo || "");
+    });
+  });
   DB.locs = Array.from(locMap.keys()).sort(natCmp);
+
   DB.artList = Array.from(artMap.keys()).map(function(code){
     return { code: code, desc: artMap.get(code)[0].descrizione || "" };
   });
@@ -410,7 +416,8 @@ function runSuggest(){
       var hint = ll.slice(0, 3).join(", ") + (ll.length > 3 ? " +" + (ll.length - 3) : "");
       sugg.push({ type: "art", key: h.a.code });
       html += '<button class="sg" data-i="' + (sugg.length - 1) + '"><b>' + esc(h.a.code) + '</b><span>' +
-        esc(h.a.desc) + ' | ' + esc(hint) + '</span></button>';
+        esc(hint) + ' | ' + esc(h.a.desc) + '</span></button>';
+
     });
   }
 
