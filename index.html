@@ -601,6 +601,15 @@ body:not(.showing) #resultPanel{display:none}
 #exPdf .ic{width:18px;height:18px}
 
 
+/* ---- FAB: se ascunde la scroll ---- */
+.fab{transition:opacity .2s ease, transform .2s ease}
+.fab.fab-hide{
+  opacity:0 !important;
+  transform:translateY(16px) scale(.9) !important;
+  pointer-events:none;
+}
+
+
 
 </style>
 </head>
@@ -1923,6 +1932,20 @@ document.addEventListener("click", function(e){
 })();
 
 
+/* ---------- FAB: dispare in timpul scroll-ului ---------- */
+(function(){
+  var fab = $("fab");
+  var timer = null;
+
+  /* scroll nu face bubble, dar in faza de capture il prindem de oriunde (pagina, lista, rezultat) */
+  document.addEventListener("scroll", function(e){
+    var t = e.target;
+    if (t && t.nodeType === 1 && t.closest && t.closest("#excModal")) return;
+    fab.classList.add("fab-hide");
+    clearTimeout(timer);
+    timer = setTimeout(function(){ fab.classList.remove("fab-hide"); }, 300);
+  }, true);
+})();
 
 
 </script>
