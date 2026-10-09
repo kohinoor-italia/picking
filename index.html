@@ -3,7 +3,11 @@
 
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b5fff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
 <title>Inventario Magazzino</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -17,7 +21,8 @@ html,body{margin:0;padding:0}
 body{font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink);font-size:16px}
 button{font-family:inherit;font-size:inherit;cursor:pointer}
 
-.top{position:sticky;top:0;z-index:20;background:var(--brand);color:#fff;padding:10px 12px 12px}
+.top{position:sticky;top:0;z-index:20;background:var(--brand);color:#fff;padding:10px 12px 12px;padding-top:calc(10px + env(safe-area-inset-top))}
+
 .top-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
 .title{font-size:18px;font-weight:700}
 .upd{font-size:12px;opacity:.9;margin-top:2px}
@@ -53,6 +58,19 @@ button{font-family:inherit;font-size:inherit;cursor:pointer}
 .tag{font-size:13px;border-radius:999px;padding:4px 10px;background:#e7f6ef;color:var(--ok)}
 .tag.empty{background:#f1f1f1;color:var(--muted)}
 .more{display:block;width:100%;border:0;background:#f6f8fb;color:var(--brand);font-weight:700;padding:16px}
+.letter-sep{display:flex;align-items:center;gap:10px;padding:14px 14px 8px;background:#f6f8fb;border-bottom:1px solid var(--line)}
+.letter-badge{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:var(--brand);color:#fff;font-weight:700;font-size:18px;flex-shrink:0}
+.letter-line{flex:1;height:2px;background:linear-gradient(to right,var(--brand),transparent);border-radius:2px;opacity:.35}
+.letter-cnt{font-size:12px;color:var(--muted);flex-shrink:0}
+.grp-sep{display:flex;align-items:center;gap:8px;padding:5px 14px;background:#f6f8fb;border-bottom:1px solid var(--line)}
+.grp-name{font-size:12px;font-weight:700;color:#fff;background:var(--brand);border-radius:6px;padding:2px 8px;letter-spacing:.5px;flex-shrink:0}
+.grp-line{flex:1;height:0;border-top:1px solid var(--line)}
+.grp-cnt{font-size:11px;color:var(--muted);flex-shrink:0}
+.fab{position:fixed;right:16px;bottom:16px;z-index:70;width:54px;height:54px;border:0;border-radius:50%;background:var(--brand);color:#fff;font-size:26px;line-height:1;box-shadow:0 4px 14px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center}
+.fab:active{background:var(--brand-d);transform:scale(.94)}
+body.selmode .fab{bottom:78px}
+
+
 
 .back{display:inline-block;border:0;background:#eaf1ff;color:var(--brand);font-weight:700;border-radius:10px;padding:10px 14px;min-height:44px;margin:12px 14px 0}
 .big-loc{font-size:30px;font-weight:700;color:var(--brand);padding:12px 14px 0;word-break:break-all}
@@ -194,7 +212,10 @@ body:not(.showing) #resultPanel{display:none}
   </div>
 </div>
 
+<button class="fab" id="fab" aria-label="Su">↑</button>
+
 <div class="status" id="status"><div id="statusTxt"></div><div class="bar"><i id="barFill"></i></div></div>
+
 
 
 <script>
@@ -346,8 +367,22 @@ function renderList(){
   }
   var html = "";
   var n = Math.min(shown, total);
+  function grpOf(l){ return l.split(".").slice(0, 2).join(".").toUpperCase(); }
+  var cntG = {};
+  list.forEach(function(l){
+    var g = grpOf(l);
+    cntG[g] = (cntG[g] || 0) + 1;
+  });
+  var lastG = "";
   for (var i = 0; i < n; i++){
     var loc = list[i];
+    var G = grpOf(loc);
+    if (G !== lastG){
+
+      lastG = G;
+      html += '<div class="grp-sep"><span class="grp-name">' + esc(G) + '</span><span class="grp-line"></span><span class="grp-cnt">' + cntG[G] + '</span></div>';
+    }
+
     var items = DB.locMap.get(loc);
     var cnt = items.length;
     var artLine = "";
@@ -933,6 +968,17 @@ setTimeout(hbLoop, 8000);
 
 
 setInterval(rotateArts, 3000);
+
+$("fab").addEventListener("click", function(){
+  $("excModal").classList.remove("on");
+  $("sugg").style.display = "none";
+  $("q").blur();
+  if (selMode) exitSel();
+  document.body.classList.remove("showing");
+  $("list").scrollTop = 0;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
 </script>
 
 </body>
