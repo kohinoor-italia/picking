@@ -1,6 +1,6 @@
 {
-  "name": "PicKiNg",
-  "short_name": "PicKiNg",
+  "name": "Picking",
+  "short_name": "Picking",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
