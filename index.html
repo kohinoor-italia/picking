@@ -122,6 +122,8 @@ td.code{font-weight:700;white-space:nowrap}
 .seg{display:flex;gap:2px;background:#e6ebf3;border-radius:10px;padding:3px;flex-shrink:0}
 .seg .chip{border:0;background:transparent;color:var(--muted);border-radius:8px;min-height:30px;padding:4px 12px}
 .seg .chip.on{background:#fff;color:var(--brand);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.filters{flex-wrap:wrap;row-gap:6px}
+.lvl{border:0;background:transparent;color:var(--brand);font-weight:700;font-size:13px;min-height:30px;padding:0 8px;outline:none;font-family:inherit}
 .ic{width:1.2em;height:1.2em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;display:inline-block;vertical-align:-.2em}
 .btn-up{display:inline-flex;align-items:center;justify-content:center;gap:6px}
 .btn-up .ic{width:20px;height:20px}
@@ -263,6 +265,14 @@ body:not(.showing) #resultPanel{display:none}
         <div class="seg">
           <button class="chip on" data-sort="asc" aria-label="Crescente"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/></svg></button>
           <button class="chip" data-sort="desc" aria-label="Decrescente"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5.5 12.5L12 19l6.5-6.5"/></svg></button>
+        </div>
+        <div class="seg">
+          <button class="chip on" data-par="all">Tutti</button>
+          <button class="chip" data-par="even">Pari</button>
+          <button class="chip" data-par="odd">Dispari</button>
+        </div>
+        <div class="seg">
+          <select class="lvl" id="lvl"><option value="all">Tutti i livelli</option></select>
         </div>
       </div>
       <div class="list" id="list"></div>
@@ -427,6 +437,33 @@ function artHtml(r){
 
 var fMode = "all";
 var fSort = "asc";
+var fPar = "all";
+var fLvl = "all";
+var lvlKey = "";
+
+function fillLevels(){
+  var set = {};
+  DB.locs.forEach(function(l){
+    var v = l.split(".")[3];
+    if (v && /^0[1-7]$/.test(v)) set[v] = 1;
+  });
+  var arr = Object.keys(set).sort(natCmp);
+  var key = arr.join("|");
+  if (key === lvlKey) return;
+  lvlKey = key;
+  var h = '<option value="all">Tutti i livelli</option>';
+  arr.forEach(function(v){ h += '<option value="' + esc(v) + '">Livello ' + esc(v) + '</option>'; });
+  $("lvl").innerHTML = h;
+  if (fLvl !== "all" && !set[fLvl]) fLvl = "all";
+  $("lvl").value = fLvl;
+}
+
+$("lvl").addEventListener("change", function(){
+  fLvl = this.value;
+  shown = 200;
+  renderList();
+});
+
 
 function getFiltered(){
   var arr = DB.locs.filter(function(loc){
@@ -435,6 +472,19 @@ function getFiltered(){
     if (fMode === "busy") return cnt > 0;
     return true;
   });
+  if (fPar !== "all"){
+    arr = arr.filter(function(loc){
+      var n = parseInt(loc.split(".")[2], 10);
+      if (isNaN(n)) return false;
+      return fPar === "even" ? n % 2 === 0 : n % 2 !== 0;
+    });
+  }
+  if (fLvl !== "all"){
+    arr = arr.filter(function(loc){
+      var v = loc.split(".")[3];
+      return v && v.toUpperCase() === fLvl;
+    });
+  }
   var qv = noDots($("lq").value);
   if (qv){
     arr = arr.filter(function(loc){ return noDots(loc).indexOf(qv) === 0; });
@@ -446,6 +496,7 @@ function getFiltered(){
 }
 
 function renderList(){
+  fillLevels();
   var list = getFiltered();
   var total = list.length;
   $("listCount").textContent = total + " ubicazioni · " + (window.HID || 0) + " righe nascoste";
@@ -456,7 +507,9 @@ function renderList(){
   for (var c = 0; c < chips.length; c++){
     var m = chips[c].getAttribute("data-mode");
     var s = chips[c].getAttribute("data-sort");
-    chips[c].classList.toggle("on", m ? m === fMode : s === fSort);
+    var p = chips[c].getAttribute("data-par");
+    chips[c].classList.toggle("on", m ? m === fMode : (s ? s === fSort : p === fPar));
+
   }
 
   if (!DB.locs.length){
@@ -509,6 +562,7 @@ $("filters").addEventListener("click", function(e){
   if (!b) return;
   if (b.getAttribute("data-mode")) fMode = b.getAttribute("data-mode");
   if (b.getAttribute("data-sort")) fSort = b.getAttribute("data-sort");
+  if (b.getAttribute("data-par")) fPar = b.getAttribute("data-par");
   shown = 200;
   renderList();
 });
