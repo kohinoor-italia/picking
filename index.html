@@ -226,6 +226,8 @@ async function loadAll(){
 function buildIndex(rows){
   RAW = rows;
   rows = rows.filter(function(r){ return !isExcluded(r.ubicazione); });
+  window.HID = RAW.length - rows.length;
+
   var locMap = new Map(), artMap = new Map(), last = null;
 
   rows.forEach(function(r){
@@ -303,7 +305,8 @@ function getFiltered(){
 function renderList(){
   var list = getFiltered();
   var total = list.length;
-  $("listCount").textContent = total + " ubicazioni";
+  $("listCount").textContent = total + " ubicazioni | ascunse: " + (window.HID || 0) + " rânduri";
+
 
   var chips = document.querySelectorAll("#filters .chip");
   for (var c = 0; c < chips.length; c++){
@@ -400,6 +403,8 @@ function showLocation(loc){
   var items = DB.locMap.get(loc) || [];
   var html = '<button class="back" data-act="back">&lt; Torna alla lista</button>' +
     '<div class="big-loc">' + esc(loc) + '</div>' +
+    '<button data-act="excl" data-loc="' + esc(loc) + '" style="border:0;background:#fde8ea;color:#b00020;font-weight:700;border-radius:10px;padding:8px 12px;min-height:40px;margin:8px 14px 0">🚫 Escludi ubicazione</button>' +
+
     '<div class="sub">' + (items.length
       ? items.length + (items.length === 1 ? " articolo" : " articoli") + " in questa ubicazione"
       : "Ubicazione libera (nessun articolo)") + '</div>';
@@ -443,6 +448,9 @@ function markActive(){
 
 $("result").addEventListener("click", function(e){
   if (e.target.closest('[data-act="back"]')){ goBack(); return; }
+  var ex = e.target.closest('[data-act="excl"]');
+  if (ex){ excludeLoc(ex.getAttribute("data-loc")); return; }
+
   var lb = e.target.closest(".loc-btn");
   if (lb){ showLocation(lb.getAttribute("data-loc")); return; }
   var tr = e.target.closest("tr[data-art]");
@@ -716,13 +724,17 @@ function renderExc(){
   EXC.forEach(function(r){
     var m = r.modo === "pari" ? "solo pari" : (r.modo === "dispari" ? "solo dispari" : "tutte");
     var saveE = EXC; EXC = [r];
-    var seen = {}, hid = 0;
+    var seen = {}, hid = 0, names = [];
     RAW.forEach(function(x){
-      if (!seen[x.ubicazione]){ seen[x.ubicazione] = 1; if (isExcluded(x.ubicazione)) hid++; }
+      if (!seen[x.ubicazione]){ seen[x.ubicazione] = 1; if (isExcluded(x.ubicazione)){ hid++; names.push(x.ubicazione); } }
     });
+    names.sort(natCmp);
+
     EXC = saveE;
     h += '<div class="ex-row"><span>' + esc(r.da) + ' → ' + esc(r.a) +
-      '<br><small>' + m + ' | nascoste: ' + hid + '</small></span><button data-id="' + r.id + '">Elimina</button></div>';
+      '<br><small>' + m + ' | nascoste: ' + hid + '</small>' +
+      '<br><small style="color:#b00020">' + esc(names.join(" / ")) + '</small></span><button data-id="' + r.id + '">Elimina</button></div>';
+
 
   });
   $("exList").innerHTML = h;
@@ -760,7 +772,17 @@ $("exList").addEventListener("click", async function(e){
   rebuild();
 });
 
+async function excludeLoc(loc){
+  if (!confirm("Escludere " + loc + " ?")) return;
+  var u = loc.toUpperCase();
+  var ins = await sb.from("ubicazioni_escluse").insert({ da: u, a: u, modo: "tutte" });
+  if (ins.error){ alert("Errore: " + ins.error.message); return; }
+  await loadExc();
+  rebuild();
+}
+
 init();
+
 
 
 setInterval(rotateArts, 3000);
