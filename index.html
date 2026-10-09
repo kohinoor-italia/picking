@@ -490,6 +490,70 @@ body:not(.showing) #resultPanel{display:none}
   #exList{grid-row:2/8;padding-top:14px}
 }
 
+/* ---- TELEFON: meniu excluderi pe tot ecranul ---- */
+@media (max-width:899px){
+  body:has(.modal.on){overflow:hidden}
+  body:has(.modal.on) .fab{display:none}
+
+  .modal{padding:0;align-items:stretch;background:rgba(12,22,48,.55)}
+  .modal.on{animation:modalFade .18s ease-out}
+  .modal.on .mbox{animation:modalPop .24s cubic-bezier(.2,.8,.2,1)}
+
+  .mbox{
+    max-width:none;width:100%;height:100%;border-radius:0;
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+
+  /* header */
+  .mh{
+    flex-shrink:0;border:0;color:#fff;
+    padding:calc(14px + env(safe-area-inset-top)) 16px 14px;
+    background:linear-gradient(135deg,#0b5fff 0%,#0846c2 100%);
+  }
+  .mh b{font-size:18px;font-weight:800;color:#fff}
+  .mx{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);color:#fff}
+
+  /* corp */
+  .mb{
+    flex:1;min-height:0;overflow:auto;align-content:start;
+    grid-template-columns:1fr;gap:10px;
+    padding:14px 14px calc(24px + env(safe-area-inset-bottom));
+    background:#f5f8fe;
+  }
+  #exStats{display:block;margin:0}
+  .xs-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .xs{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;box-shadow:0 1px 3px rgba(20,40,90,.06)}
+  .xs b{display:block;font-size:22px;font-weight:800;color:var(--brand);line-height:1.1}
+  .xs span{font-size:12px;color:var(--muted)}
+  .xs-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.6px}
+  .xs-hint{display:none}
+
+  .mb .lf{height:46px;font-size:16px;border-radius:12px;padding:0 14px;background:#fff}
+  #exAdd{
+    height:48px;min-height:48px;border:0;border-radius:12px;color:#fff;font-size:16px;font-weight:700;
+    background:linear-gradient(135deg,#0b5fff,#0846c2);box-shadow:0 6px 16px rgba(11,95,255,.3);
+  }
+
+  #exSearch{
+    margin-top:8px;padding-left:42px !important;
+    background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7686' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4.5 4.5'/%3E%3C/svg%3E") no-repeat 14px center/18px;
+  }
+
+  /* listă */
+  #exList{display:grid;gap:10px}
+  #exList::before{
+    content:"Esclusioni attive · " attr(data-count);
+    font-size:11.5px;font-weight:700;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.6px;
+  }
+  #exList .msg{padding:36px 16px !important;border:2px dashed var(--line);border-radius:14px;font-size:14px}
+
+  /* card */
+  .ex-row{
+    display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:10px;
+    padding:14px;background:#fff;border:1px solid var(--line);border-radius:14px;
+    box
+
 
 /* ================= END FULLSCREEN ================= */
 
