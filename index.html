@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
-<title>Inventario Magazzino</title>
+<title>Picking Magazzino</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -611,7 +611,7 @@ body:not(.showing) #resultPanel{display:none}
     <div class="brand">
       <span class="brand-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></span>
       <div>
-        <div class="title">Inventario Magazzino</div>
+        <div class="title">Picking Magazzino</div>
         <div class="upd"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span id="updTxt">Caricamento...</span></div>
       </div>
     </div>
@@ -1582,7 +1582,7 @@ function exportPdf(){
 
       doc.setFontSize(16);
       doc.setTextColor(27, 36, 48);
-      doc.text("Inventario Magazzino", 14, 15);
+      doc.text("Picking Magazzino", 14, 15);
       doc.setFontSize(9);
       doc.setTextColor(107, 118, 134);
       doc.text("Filtri: " + f.join(" | "), 14, 21);
@@ -1903,9 +1903,8 @@ document.addEventListener("click", function(e){
 (function(){
   var clr = $("clr");
 
-  /* butonul X nu mai fura focusul de la bara de cautare (tastatura ramane deschisa) */
-  clr.addEventListener("mousedown", function(e){ e.preventDefault(); });
-  clr.addEventListener("touchstart", function(e){ e.preventDefault(); }, { passive: false });
+  /* nu pierde focusul bara de cautare cand apesi X (fara sa blocheze click-ul) */
+  clr.addEventListener("pointerdown", function(e){ e.preventDefault(); });
 
   clr.addEventListener("click", function(){
     $("sugg").style.display = "none";
@@ -1922,6 +1921,7 @@ document.addEventListener("click", function(e){
     $("q").focus();
   });
 })();
+
 
 
 
