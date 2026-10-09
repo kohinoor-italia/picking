@@ -243,8 +243,11 @@ async function loadAll(){
 
 function buildIndex(rows){
   RAW = rows;
-  rows = rows.filter(function(r){ return !isExcluded(r.ubicazione); });
+  BUSY = {};
+  rows.forEach(function(r){ if (r.articolo) BUSY[r.ubicazione] = 1; });
+  rows = rows.filter(function(r){ return BUSY[r.ubicazione] || !isExcluded(r.ubicazione); });
   window.HID = RAW.length - rows.length;
+
 
   var locMap = new Map(), artMap = new Map(), last = null;
 
@@ -699,6 +702,7 @@ $("lq").addEventListener("input", function(){
   renderList();
 });
 var RAW = [];
+var BUSY = {};
 var EXC = [];
 
 function isExcluded(loc){
@@ -749,7 +753,7 @@ function renderExc(){
     var saveE = EXC; EXC = [r];
     var seen = {}, hid = 0, names = [];
     RAW.forEach(function(x){
-      if (!seen[x.ubicazione]){ seen[x.ubicazione] = 1; if (isExcluded(x.ubicazione)){ hid++; names.push(x.ubicazione); } }
+      if (!seen[x.ubicazione]){ seen[x.ubicazione] = 1; if (isExcluded(x.ubicazione) && !BUSY[x.ubicazione]){ hid++; names.push(x.ubicazione); } }
     });
     names.sort(natCmp);
 
