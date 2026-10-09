@@ -623,6 +623,26 @@ body:not(.showing) #resultPanel{display:none}
 }
 
 
+/* ---- GHID UPLOAD EXCEL ---- */
+.upg{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(12,22,48,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.upg.on{display:flex;animation:modalFade .18s ease-out}
+.upg-box{width:100%;max-width:520px;max-height:92vh;overflow:auto;background:#fff;border-radius:20px;box-shadow:0 30px 80px rgba(8,16,40,.5)}
+.upg-h{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 18px;color:#fff;background:linear-gradient(135deg,#0b5fff,#0846c2);border-radius:20px 20px 0 0}
+.upg-h b{font-size:17px}
+.upg-x{width:34px;height:34px;border:0;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;display:flex;align-items:center;justify-content:center;padding:0}
+.upg-b{padding:16px 18px 18px}
+.upg-intro{font-size:13.5px;color:var(--muted);margin:0 0 12px;line-height:1.45}
+.upg-steps{list-style:none;margin:0;padding:0;counter-reset:s}
+.upg-steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid #eef1f6;font-size:14.5px;line-height:1.4}
+.upg-steps li:first-child{border-top:0}
+.upg-steps li::before{content:counter(s);flex-shrink:0;width:26px;height:26px;border-radius:50%;background:#eaf1ff;color:var(--brand);font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.upg-steps b{color:var(--brand-d)}
+.upg-btn{display:inline-block;background:#f6a609;color:#fff;border-radius:6px;padding:1px 8px;font-weight:700;font-size:13px}
+.upg-note{margin:12px 0 14px;padding:10px 12px;border-radius:12px;background:#f3f7ff;border:1px solid #dbe6fb;font-size:13px;line-height:1.45;color:#33405a}
+.upg-go{width:100%;height:50px;border:0;border-radius:14px;color:#fff;font-size:16px;font-weight:700;background:linear-gradient(135deg,#0b5fff,#0846c2);box-shadow:0 6px 16px rgba(11,95,255,.3)}
+.upg-go:active{transform:scale(.98)}
+
+
 </style>
 </head>
 <body>
@@ -1956,6 +1976,56 @@ document.addEventListener("click", function(e){
     fab.classList.add("fab-hide");
     clearTimeout(timer);
     timer = setTimeout(function(){ fab.classList.remove("fab-hide"); }, 300);
+  }, true);
+})();
+
+
+/* ---------- GHID: cum se incarca fisierul Excel ---------- */
+(function(){
+  var m = document.createElement("div");
+  m.className = "upg";
+  m.id = "upGuide";
+  m.innerHTML =
+    '<div class="upg-box">' +
+      '<div class="upg-h"><b>Come caricare il file Excel</b>' +
+        '<button class="upg-x" id="upgClose" aria-label="Chiudi">' + ic("ban").replace('<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>', '<path d="M6 6l12 12M18 6L6 18"/>') + '</button></div>' +
+      '<div class="upg-b">' +
+        '<p class="upg-intro">Scarica il file da AD HOC seguendo questi passaggi:</p>' +
+        '<ol class="upg-steps">' +
+          '<li><span>In <b>AD HOC</b> entra in <b>Logistica</b>.</span></li>' +
+          '<li><span>Vai su <b>Report</b>.</span></li>' +
+          '<li><span>Seleziona <b>ITACOM - Stampa ubicazioni non collocate</b>.</span></li>' +
+          '<li><span>Seleziona <b>Modello XLSX</b>.</span></li>' +
+          '<li><span>Nei <b>filtri di ricerca</b> imposta dall\'ubicazione più bassa a quella più alta.</span></li>' +
+          '<li><span>Premi il pulsante arancione <span class="upg-btn">Scarica</span>.</span></li>' +
+        '</ol>' +
+        '<div class="upg-note">Il file .xlsx scaricato va caricato qui: sostituirà completamente il database con i dati aggiornati.</div>' +
+        '<button class="upg-go" id="upgGo">Scegli file Excel</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(m);
+
+  function close(){ m.classList.remove("on"); }
+  $("upgClose").addEventListener("click", close);
+  m.addEventListener("mousedown", function(e){ if (e.target === m) close(); });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape" && m.classList.contains("on")) close();
+  });
+  $("upgGo").addEventListener("click", function(){
+    close();
+    $("fileIn").click();
+  });
+
+  /* intercepteaza butonul de upload: parola ramane, apoi ghidul inainte de selectarea fisierului */
+  $("btnUp").addEventListener("click", function(e){
+    e.stopImmediatePropagation();
+    if (!unlocked){
+      var pw = prompt("Password per aggiornare il database:");
+      if (pw === null) return;
+      if (pw !== "kin2026"){ alert("Password errata."); return; }
+      unlocked = true;
+    }
+    m.classList.add("on");
   }, true);
 })();
 
