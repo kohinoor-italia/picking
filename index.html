@@ -1745,6 +1745,20 @@ document.addEventListener("click", function(e){
 })();
 
 
+/* ---------- ESCLUSIONI: ordine naturală ---------- */
+(function(){
+  var prevRender = renderExc;
+  renderExc = function(){
+    EXC.sort(function(x, y){
+      return natCmp(String(x.da), String(y.da)) ||
+             natCmp(String(x.a), String(y.a)) ||
+             natCmp(String(x.modo || ""), String(y.modo || ""));
+    });
+    prevRender();
+  };
+})();
+
+
 </script>
 
 </body>
