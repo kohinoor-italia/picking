@@ -159,6 +159,27 @@ td.code{font-weight:700;white-space:nowrap}
 .hbtn .ic{width:20px;height:20px}
 .hbtn.solid{background:#fff;color:var(--brand)}
 .hbtn.solid:active{background:#eaf1ff}
+.search-wrap .search{height:50px;border-radius:14px;padding:0 50px 0 44px;font-size:17px;background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.15);transition:box-shadow .2s}
+.search-wrap .search:focus{box-shadow:0 0 0 3px rgba(255,255,255,.55),0 2px 10px rgba(0,0,0,.2)}
+.search-wrap .search::placeholder{color:#8a94a3}
+.search-ic{position:absolute;left:14px;top:50%;margin-top:-10px;width:20px;height:20px;color:var(--brand);pointer-events:none}
+.search-wrap .clear{right:7px;top:7px;width:34px;height:34px;border-radius:50%;background:#eef1f6;color:var(--muted);padding:0}
+.search-wrap .clear:active{background:#dde3ec}
+.search-wrap .clear .ic{display:block;margin:auto;width:16px;height:16px;stroke-width:2.4}
+.sugg{top:56px}
+.sg{display:flex;align-items:center;gap:10px;padding:6px 12px;min-height:0}
+.sg .sg-ico{display:none}
+.sg .sg-body{flex:1;min-width:0;margin:0}
+.sg .sg-body > b{display:block;font-size:15px;line-height:1.2}
+.sg .sg-body .loc-art{margin-top:1px;font-size:12px}
+.sg .sg-body.row{display:flex;align-items:baseline;gap:8px}
+.sg .sg-body.row > b{flex-shrink:0}
+.sg .sg-desc{display:block;flex:1;min-width:0;margin:0;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sg .tag{padding:2px 8px;font-size:11px}
+.sg .tag.loc{background:#eaf1ff;color:var(--brand);font-weight:700}
+.sg-h{padding:5px 12px;font-size:10px}
+
+
 
 
 
@@ -219,6 +240,7 @@ body:not(.showing) #resultPanel{display:none}
     <input type="file" id="fileIn" accept=".xlsx" style="display:none">
   </div>
   <div class="search-wrap">
+    <svg class="ic search-ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
     <input class="search" id="q" type="text" placeholder="Cerca articolo o ubicazione..." autocomplete="off" autocapitalize="off" spellcheck="false">
 <button class="clear" id="clr" aria-label="Cancella"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     <div class="sugg" id="sugg"></div>
@@ -300,6 +322,8 @@ function $(id){ return document.getElementById(id); }
 var IC = {
   ban: '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
   chevL: '<path d="M15 5l-7 7 7 7"/>',
+  pin: '<path d="M12 21s-6-5.5-6-10a6 6 0 0112 0c0 4.5-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/>',
+  box: '<path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
   arrowR: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   selOff: '<rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/>',
   selOn: '<rect x="3.5" y="3.5" width="17" height="17" rx="4.5" style="fill:currentColor"/><path d="M8 12.5l3 3 5-6" stroke="#fff"/>'
@@ -655,7 +679,7 @@ function runSuggest(){
         ? '<span class="loc-art' + (cnt > 1 ? ' rot' : '') + '" data-loc="' + esc(h.loc) + '" data-i="0">' + artHtml(items[0]) + '</span>'
         : '';
       var tag = cnt ? '<span class="tag">' + cnt + ' art.</span>' : '<span class="tag empty">libera</span>';
-      html += '<button class="sg" data-i="' + (sugg.length - 1) + '"><div class="sg-top"><b>' + esc(h.loc) + '</b>' + tag + '</div>' + line + '</button>';
+      html += '<button class="sg" data-i="' + (sugg.length - 1) + '"><span class="sg-ico">' + ic("pin") + '</span><span class="sg-body"><b>' + esc(h.loc) + '</b>' + line + '</span>' + tag + '</button>';
     });
 
 
@@ -668,10 +692,9 @@ function runSuggest(){
       var locs = {};
       DB.artMap.get(h.a.code).forEach(function(r){ locs[r.ubicazione] = 1; });
       var ll = Object.keys(locs).sort(natCmp);
-      var hint = ll.slice(0, 3).join(", ") + (ll.length > 3 ? " +" + (ll.length - 3) : "");
+      var hint = ll[0] + (ll.length > 1 ? " +" + (ll.length - 1) : "");
       sugg.push({ type: "art", key: h.a.code });
-      html += '<button class="sg" data-i="' + (sugg.length - 1) + '"><b>' + esc(h.a.code) + '</b><span>' +
-        esc(hint) + ' | ' + esc(h.a.desc) + '</span></button>';
+      html += '<button class="sg" data-i="' + (sugg.length - 1) + '"><span class="sg-body row"><b>' + esc(h.a.code) + '</b><span class="sg-desc">' + esc(h.a.desc) + '</span></span><span class="tag loc">' + esc(hint) + '</span></button>';
 
     });
   }
