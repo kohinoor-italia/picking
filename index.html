@@ -226,6 +226,146 @@ body:not(.showing) #resultPanel{display:none}
   .title{font-size:22px}
   .loc-row{min-height:46px}
 }
+
+
+/* ================= DESKTOP REDESIGN (>=900px) ================= */
+@media (min-width:900px){
+  body{
+    font-family:"Inter","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+    background:
+      radial-gradient(1200px 500px at 10% -10%, #dfe9ff 0%, transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, #e8f3ff 0%, transparent 55%),
+      var(--bg);
+    background-attachment:fixed;
+  }
+
+  /* ---- header: logo | căutare | butoane, pe un singur rând ---- */
+  .top{
+    display:flex;align-items:center;gap:32px;
+    padding:14px max(28px, calc((100vw - 1400px)/2));
+    background:linear-gradient(135deg,#0b5fff 0%,#0846c2 100%);
+    box-shadow:0 6px 24px rgba(11,95,255,.28);
+  }
+  .top-row{display:contents}
+  .brand{order:0}
+  .search-wrap{order:1;flex:1;max-width:720px;margin:0 auto}
+  .hbtns{order:2}
+  .brand-ic{width:44px;height:44px;border-radius:13px}
+  .brand .title{font-size:20px;letter-spacing:.2px}
+  .brand .upd{font-size:12px}
+  .hbtn{width:44px;height:44px;transition:transform .15s, background .15s}
+  .hbtn:hover{transform:translateY(-1px);background:rgba(255,255,255,.32)}
+  .hbtn.solid:hover{background:#eaf1ff}
+  .search-wrap .search{height:54px;font-size:17px;border-radius:16px;box-shadow:0 4px 16px rgba(0,0,0,.18)}
+  .sugg{top:62px;border-radius:16px;max-height:70vh;box-shadow:0 20px 50px rgba(10,30,80,.35)}
+  .sg{padding:9px 16px;transition:background .12s}
+  .sg .sg-body > b{font-size:16px}
+
+  /* ---- layout ---- */
+  .wrap{max-width:1400px;padding:24px 28px}
+  .grid{grid-template-columns:440px 1fr;gap:24px}
+  .panel{
+    border-radius:20px;border:1px solid rgba(221,227,236,.8);
+    box-shadow:0 2px 6px rgba(20,40,90,.05),0 14px 40px rgba(20,40,90,.08);
+  }
+
+  /* ---- lista (stânga): înălțime fixă, scroll intern ---- */
+  body.showing #listPanel,body:not(.showing) #listPanel{
+    display:flex;flex-direction:column;
+    position:sticky;top:96px;height:calc(100vh - 124px);
+  }
+  .list{flex:1;max-height:none;overflow:auto}
+  .ph{padding:16px 18px;background:linear-gradient(#fff,#fafbfe)}
+  .ph-t b{font-size:17px}
+  .lfwrap{padding:10px 14px 0}
+  .lf{height:40px;border-radius:12px;transition:border-color .15s, box-shadow .15s}
+  .lf:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(11,95,255,.15)}
+  .filters{padding:10px 14px}
+  .chip{transition:background .15s, color .15s, box-shadow .15s}
+  .chip:not(.on):hover{background:#eef3fc}
+  .seg .chip:not(.on):hover{background:rgba(255,255,255,.7)}
+  #pdfBtn:hover,#selBtn:not(.on):hover{background:#dbe8ff !important}
+
+  .loc-row{min-height:50px;padding:0 18px;transition:background .12s, box-shadow .12s}
+  .loc-row:hover{background:#f0f5ff;box-shadow:inset 3px 0 0 #9bbcff}
+  .loc-row.active{background:#e3edff;box-shadow:inset 4px 0 0 var(--brand)}
+  .loc-row.sel{box-shadow:inset 4px 0 0 #b00020}
+  .loc-code{font-size:16px;font-variant-numeric:tabular-nums}
+  .grp-sep{padding:7px 18px;position:sticky;top:0;z-index:2}
+  .more{padding:18px;transition:background .15s}
+  .more:hover{background:#eaf1ff}
+
+  /* ---- rezultat (dreapta) ---- */
+  body.showing #resultPanel,body:not(.showing) #resultPanel{
+    display:block;position:sticky;top:96px;
+    height:calc(100vh - 124px);overflow:auto;
+  }
+  .placeholder{
+    height:100%;min-height:360px;display:flex;align-items:center;justify-content:center;
+    font-size:17px;padding:40px;
+    background:
+      radial-gradient(circle at 50% 40%, #eef4ff 0, transparent 55%);
+  }
+  .loc-head{padding:22px 28px;background:linear-gradient(135deg,#f3f7ff,#ffffff);border-bottom:1px solid var(--line)}
+  .loc-head .back{display:none}
+  .loc-head .big-loc{
+    font-size:38px;font-weight:800;letter-spacing:.5px;
+    background:linear-gradient(135deg,#0b5fff,#0846c2);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .loc-head .sub{font-size:15px;margin-top:4px}
+  .excl-btn{width:44px;height:44px;transition:background .15s, transform .15s}
+  .excl-btn:hover{background:#f9cfd4;transform:scale(1.06)}
+
+  table{border-collapse:separate;border-spacing:0}
+  th{position:sticky;top:0;z-index:1;padding:12px 28px;font-size:12px;background:#f3f6fb;border-bottom:1px solid var(--line)}
+  td{padding:16px 28px;font-size:15px;border-top:0;border-bottom:1px solid #eef1f6}
+  td.code{color:var(--brand);font-variant-numeric:tabular-nums;width:220px}
+  tbody tr:nth-child(even){background:#fafbfe}
+  tr.clickable{transition:background .12s}
+  tr.clickable:hover{background:#e9f1ff}
+
+  .art-card{padding:26px 28px}
+  .art-card h3{font-size:28px;color:var(--brand)}
+  .art-card p{font-size:16px}
+  .loc-btn{border-radius:14px;padding:14px 20px;box-shadow:0 4px 12px rgba(11,95,255,.25);transition:transform .15s, box-shadow .15s}
+  .loc-btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(11,95,255,.35)}
+
+  /* ---- bară selecție / status / FAB: plutitoare, centrate ---- */
+  .selbar{
+    left:50%;right:auto;transform:translateX(-50%);
+    width:560px;bottom:24px;border-radius:18px;padding:12px 16px;
+    box-shadow:0 14px 40px rgba(10,20,40,.4);
+  }
+  .status{
+    left:50%;right:auto;transform:translateX(-50%);
+    width:480px;bottom:24px;border-radius:14px;
+    box-shadow:0 14px 40px rgba(10,20,40,.4);
+  }
+  .fab{right:28px;bottom:28px;width:50px;height:50px;transition:transform .15s}
+  .fab:hover{transform:translateY(-2px)}
+  body.selmode .fab{bottom:96px}
+
+  /* ---- fereastra "Ubicazioni escluse" ---- */
+  .modal{align-items:center;background:rgba(15,25,50,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+  .mbox{max-width:560px;border-radius:20px;box-shadow:0 30px 80px rgba(10,20,50,.45);max-height:85vh;overflow:auto}
+  .mh{padding:18px 22px}
+  .mb{padding:18px 22px 22px;gap:10px}
+  .mx{cursor:pointer;border-radius:50%;width:36px;height:36px;transition:background .15s}
+  .mx:hover{background:#eef1f6}
+  .ex-row button{cursor:pointer;transition:background .15s}
+  .ex-row button:hover{background:#f9cfd4}
+
+  /* ---- scrollbar fin ---- */
+  .list,#resultPanel,.mbox,.sugg{scrollbar-width:thin;scrollbar-color:#c3cddd transparent}
+  .list::-webkit-scrollbar,#resultPanel::-webkit-scrollbar,.sugg::-webkit-scrollbar{width:10px}
+  .list::-webkit-scrollbar-thumb,#resultPanel::-webkit-scrollbar-thumb,.sugg::-webkit-scrollbar-thumb{
+    background:#c3cddd;border-radius:10px;border:3px solid transparent;background-clip:padding-box;
+  }
+}
+/* ================= END DESKTOP REDESIGN ================= */
+
+
 </style>
 </head>
 <body>
