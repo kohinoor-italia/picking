@@ -346,15 +346,7 @@ body:not(.showing) #resultPanel{display:none}
   .fab:hover{transform:translateY(-2px)}
   body.selmode .fab{bottom:96px}
 
-  /* ---- fereastra "Ubicazioni escluse" ---- */
-  .modal{align-items:center;background:rgba(15,25,50,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-  .mbox{max-width:560px;border-radius:20px;box-shadow:0 30px 80px rgba(10,20,50,.45);max-height:85vh;overflow:auto}
-  .mh{padding:18px 22px}
-  .mb{padding:18px 22px 22px;gap:10px}
-  .mx{cursor:pointer;border-radius:50%;width:36px;height:36px;transition:background .15s}
-  .mx:hover{background:#eef1f6}
-  .ex-row button{cursor:pointer;transition:background .15s}
-  .ex-row button:hover{background:#f9cfd4}
+
 
   /* ---- scrollbar fin ---- */
   .list,#resultPanel,.mbox,.sugg{scrollbar-width:thin;scrollbar-color:#c3cddd transparent}
@@ -365,35 +357,107 @@ body:not(.showing) #resultPanel{display:none}
 }
 
 
-/* ================= MENIU EXCLUDERI: COMPACT + CĂUTARE (>=900px) ================= */
+/* ================= MENIU EXCLUDERI: FULLSCREEN ================= */
+#exStats{display:none}
+.xc-body{flex:1;min-width:0}
+.xc-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.xc-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.xc-chip{font-size:11.5px;font-weight:600;background:#eef3fc;color:#0846c2;border-radius:6px;padding:2px 7px}
+.xc-chip.more{background:#f1f1f1;color:var(--muted)}
+
+@keyframes modalFade{from{opacity:0}to{opacity:1}}
+@keyframes modalPop{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:none}}
+
 @media (min-width:900px){
-  .mbox{max-width:600px;border-radius:16px;max-height:80vh}
-  .mh{padding:12px 18px}
-  .mh b{font-size:15px}
-  .mx{width:30px;height:30px}
-  .mx .ic{width:16px;height:16px}
+  .modal{padding:3vh 3vw;align-items:center;background:rgba(12,22,48,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  .modal.on{animation:modalFade .18s ease-out}
+  .modal.on .mbox{animation:modalPop .24s cubic-bezier(.2,.8,.2,1)}
 
-  .mb::before{display:none}
-  .mb{padding:14px 18px 18px;gap:8px}
-  .mb .lf{height:36px;font-size:13px;border-radius:10px;padding:0 12px}
-  #exAdd{height:36px;min-height:36px;font-size:13px;border-radius:10px;box-shadow:0 4px 12px rgba(11,95,255,.25)}
-
-  #exSearch{
-    grid-column:1/-1;margin-top:6px;
-    background:#f6f8fb url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7686' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4.5 4.5'/%3E%3C/svg%3E") no-repeat 11px center/16px;
-    padding-left:34px !important;
+  .mbox{
+    width:min(1280px,100%);max-width:none;height:min(900px,94vh);max-height:none;
+    display:flex;flex-direction:column;overflow:hidden;
+    border-radius:22px;border:0;box-shadow:0 40px 100px rgba(8,16,40,.55);
   }
 
-  #exList{margin-top:0;max-height:52vh}
-  #exList::before{content:"Esclusioni attive · " attr(data-count);font-size:11px;margin-bottom:0}
-  .ex-row{padding:8px 12px;margin-top:6px;border-radius:10px;font-size:13px;gap:10px}
-  .ex-row .ic{width:12px;height:12px;margin:0 4px}
-  .ex-row small{font-size:11.5px}
-  .ex-row small[style]{margin-top:2px;max-height:54px;line-height:1.4}
-  .ex-row button{padding:5px 10px;font-size:12px;border-radius:8px}
-  #exList .msg{padding:18px 12px !important;font-size:13px;margin-top:6px}
+  /* header */
+  .mh{
+    flex-shrink:0;padding:18px 28px;border:0;color:#fff;
+    background:linear-gradient(135deg,#0b5fff 0%,#0846c2 100%);
+  }
+  .mh b{font-size:20px;font-weight:800;letter-spacing:.2px;color:#fff}
+  .mx{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;cursor:pointer;transition:background .15s}
+  .mx:hover{background:rgba(255,255,255,.32);color:#fff}
+
+  /* corp: stânga formular, dreapta listă */
+  .mb{
+    flex:1;min-height:0;padding:0;gap:0;overflow:hidden;align-content:stretch;
+    display:grid;grid-template-columns:340px 1fr;grid-template-rows:repeat(5,auto) 1fr;
+  }
+  .mb::before{
+    content:"";display:block;grid-column:1;grid-row:1/7;
+    background:#f5f8fe;border-right:1px solid var(--line);
+    font-size:0;padding:0;border-radius:0;border-width:0 1px 0 0;
+  }
+
+  /* panou stânga */
+  #exStats{display:block;grid-column:1;grid-row:1;margin:24px 24px 14px}
+  .xs-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
+  .xs{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:0 1px 3px rgba(20,40,90,.06)}
+  .xs b{display:block;font-size:26px;font-weight:800;color:var(--brand);line-height:1.1;font-variant-numeric:tabular-nums}
+  .xs span{font-size:12px;color:var(--muted)}
+  .xs-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--ink)}
+  .xs-hint{font-size:12.5px;line-height:1.45;color:var(--muted);margin-top:4px}
+
+  #exDa,#exA,#exMode,#exAdd{grid-column:1;margin:0 24px 10px;width:auto;justify-self:stretch}
+  #exDa{grid-row:2}#exA{grid-row:3}#exMode{grid-row:4}#exAdd{grid-row:5;margin-top:4px}
+  .mb .lf{height:44px;font-size:15px;border-radius:12px;padding:0 14px;font-variant-numeric:tabular-nums;background:#fff}
+  .mb select.lf{cursor:pointer}
+  #exAdd{
+    height:46px;min-height:46px;border-radius:12px;font-size:15px;font-weight:700;border:0;color:#fff;
+    background:linear-gradient(135deg,#0b5fff,#0846c2);box-shadow:0 6px 16px rgba(11,95,255,.3);
+    transition:transform .15s, box-shadow .15s;
+  }
+  #exAdd:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(11,95,255,.4)}
+
+  /* căutare + listă (dreapta) */
+  #exSearch{
+    grid-column:2;grid-row:1;margin:24px 28px 0;width:auto;justify-self:stretch;height:46px;
+    background:#f6f8fb url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7686' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4.5 4.5'/%3E%3C/svg%3E") no-repeat 14px center/18px;
+    padding-left:42px !important;
+  }
+  #exList{
+    grid-column:2;grid-row:2/7;min-height:0;max-height:none;margin:0;
+    overflow:auto;padding:16px 28px 28px;
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;align-content:start;
+    scrollbar-width:thin;scrollbar-color:#c3cddd transparent;
+  }
+  #exList::before{
+    content:"Esclusioni attive · " attr(data-count);
+    grid-column:1/-1;font-size:12px;font-weight:700;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.6px;margin:0;
+  }
+  #exList .msg{grid-column:1/-1;margin:0;padding:50px 16px !important;border:2px dashed var(--line);border-radius:16px;font-size:15px}
+
+  /* card excludere */
+  .ex-row{
+    display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:12px;margin:0;
+    padding:16px 18px;background:#fff;border:1px solid var(--line);border-radius:16px;
+    box-shadow:0 2px 8px rgba(20,40,90,.05);
+    transition:transform .15s, box-shadow .15s, border-color .15s;
+  }
+  .ex-row:hover{transform:translateY(-2px);border-color:#c3d6fa;box-shadow:0 10px 26px rgba(20,40,90,.12)}
+  .xc-range{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;flex-wrap:wrap}
+  .xc-range .ic{width:16px;height:16px;color:var(--brand);margin:0}
+  .xc-badge{flex-shrink:0;font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:#eaf1ff;color:var(--brand)}
+  .xc-chips{max-height:96px;overflow:auto;margin-top:0;scrollbar-width:thin}
+  .xc-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-top:12px;border-top:1px solid #eef1f6}
+  .xc-count{font-size:13px;color:var(--muted)}
+  .xc-count b{color:var(--ink)}
+  .ex-row button{padding:7px 14px;border-radius:10px;font-size:13px;cursor:pointer;background:#fde8ea;color:#b00020;transition:background .15s,color .15s}
+  .ex-row button:hover{background:#b00020;color:#fff}
 }
-/* ================= END ================= */
+/* ================= END FULLSCREEN ================= */
+
 
 
 
@@ -1490,6 +1554,65 @@ document.addEventListener("click", function(e){
   $("btnExc").addEventListener("click", function(){ inp.value = ""; filterExc(); });
 })();
 
+/* ---------- MENIU ESCLUSIONI: carduri + statistici ---------- */
+(function(){
+  var stats = document.createElement("div");
+  stats.id = "exStats";
+  stats.innerHTML =
+    '<div class="xs-grid">' +
+      '<div class="xs"><b id="xsRules">0</b><span>Esclusioni</span></div>' +
+      '<div class="xs"><b id="xsHid">0</b><span>Ubicazioni nascoste</span></div>' +
+    '</div>' +
+    '<div class="xs-title">Nuova esclusione</div>' +
+    '<div class="xs-hint">Nascondi un intervallo di ubicazioni. Quelle occupate restano sempre visibili.</div>';
+  $("exDa").parentNode.insertBefore(stats, $("exDa"));
+
+  function decorate(){
+    var rows = $("exList").querySelectorAll(".ex-row");
+    var uniq = {};
+    for (var i = 0; i < rows.length; i++){
+      var row = rows[i];
+      var sp = row.querySelector("span");
+      var btn = row.querySelector("button[data-id]");
+      if (!sp || !btn) continue;
+      var sm = sp.querySelectorAll("small");
+      var da = sp.childNodes[0] ? sp.childNodes[0].textContent.trim() : "";
+      var a  = sp.childNodes[2] ? sp.childNodes[2].textContent.trim() : "";
+      var info = sm[0] ? sm[0].textContent : "";
+      var mm = info.match(/^(.*?)\s*\|\s*nascoste:\s*(\d+)/);
+      var modo = mm ? mm[1].trim() : "tutte";
+      modo = modo.charAt(0).toUpperCase() + modo.slice(1);
+      var names = sm[1] ? sm[1].textContent.split(" / ").map(function(s){ return s.trim(); }).filter(Boolean) : [];
+      names.forEach(function(n){ uniq[n] = 1; });
+
+      var chipsHtml = "";
+      names.slice(0, 80).forEach(function(n){ chipsHtml += '<span class="xc-chip">' + esc(n) + '</span> '; });
+      if (names.length > 80) chipsHtml += '<span class="xc-chip more">+' + (names.length - 80) + ' altre</span>';
+
+      row.innerHTML =
+        '<div class="xc-body">' +
+          '<div class="xc-head"><div class="xc-range"><span>' + esc(da) + '</span>' + ic("arrowR") + '<span>' + esc(a) + '</span></div>' +
+          '<span class="xc-badge">' + esc(modo) + '</span></div>' +
+          (names.length ? '<div class="xc-chips">' + chipsHtml + '</div>' : '') +
+        '</div>' +
+        '<div class="xc-foot"><span class="xc-count"><b>' + names.length + '</b> ' + (names.length === 1 ? 'ubicazione nascosta' : 'ubicazioni nascoste') + '</span></div>';
+      row.querySelector(".xc-foot").appendChild(btn);
+    }
+    $("xsRules").textContent = rows.length;
+    $("xsHid").textContent = Object.keys(uniq).length;
+  }
+
+  var prev = renderExc;
+  renderExc = function(){ prev(); decorate(); };
+
+  /* chiudi con Esc o click pe fundal */
+  $("excModal").addEventListener("mousedown", function(e){
+    if (e.target === this) $("excClose").click();
+  });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape" && $("excModal").classList.contains("on")) $("excClose").click();
+  });
+})();
 
 
 </script>
