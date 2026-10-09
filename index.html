@@ -38,7 +38,13 @@ button{font-family:inherit;font-size:inherit;cursor:pointer}
 .ph{padding:12px 14px;border-bottom:1px solid var(--line);font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .ph small{color:var(--muted);font-weight:400}
 .list{max-height:none}
-.loc-row{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;border-bottom:1px solid var(--line);background:#fff;padding:0 14px;min-height:54px;text-align:left}
+.loc-row{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;border:0;border-bottom:1px solid var(--line);background:#fff;padding:8px 14px;min-height:60px;text-align:left}
+.loc-main{display:block;flex:1;min-width:0}
+.loc-art{display:block;font-size:13px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .4s ease;opacity:1}
+.loc-art b{color:var(--ink)}
+.loc-art.fade{opacity:0}
+.loc-row .tag{flex-shrink:0}
+
 .loc-row:active,.loc-row:hover{background:#eaf1ff}
 .loc-row.active{background:#dce8ff}
 .loc-code{font-weight:700;font-size:17px;letter-spacing:.3px}
@@ -207,6 +213,10 @@ async function init(){
 }
 
 /* ---------- home list ---------- */
+function artHtml(r){
+  return '<b>' + esc(r.articolo) + '</b> ' + esc(r.descrizione || "");
+}
+
 function renderList(){
   var total = DB.locs.length;
   $("listCount").textContent = total + " ubicazioni";
@@ -218,9 +228,15 @@ function renderList(){
   var n = Math.min(shown, total);
   for (var i = 0; i < n; i++){
     var loc = DB.locs[i];
-    var cnt = DB.locMap.get(loc).length;
+    var items = DB.locMap.get(loc);
+    var cnt = items.length;
+    var artLine = "";
+    if (cnt){
+      artLine = '<span class="loc-art' + (cnt > 1 ? ' rot' : '') + '" data-loc="' + esc(loc) + '" data-i="0">' +
+        artHtml(items[0]) + '</span>';
+    }
     html += '<button class="loc-row' + (loc === activeLoc ? " active" : "") + '" data-loc="' + esc(loc) + '">' +
-      '<span class="loc-code">' + esc(loc) + '</span>' +
+      '<span class="loc-main"><span class="loc-code">' + esc(loc) + '</span>' + artLine + '</span>' +
       (cnt ? '<span class="tag">' + cnt + ' art.</span>' : '<span class="tag empty">libera</span>') +
       '</button>';
   }
@@ -229,6 +245,24 @@ function renderList(){
   }
   $("list").innerHTML = html;
 }
+
+function rotateArts(){
+  var els = document.querySelectorAll(".loc-art.rot");
+  for (var k = 0; k < els.length; k++){
+    (function(el){
+      var items = DB.locMap.get(el.getAttribute("data-loc"));
+      if (!items || items.length < 2) return;
+      el.classList.add("fade");
+      setTimeout(function(){
+        var i = (parseInt(el.getAttribute("data-i"), 10) + 1) % items.length;
+        el.setAttribute("data-i", i);
+        el.innerHTML = artHtml(items[i]);
+        el.classList.remove("fade");
+      }, 400);
+    })(els[k]);
+  }
+}
+
 
 
 $("list").addEventListener("click", function(e){
@@ -517,6 +551,8 @@ async function handleFile(file){
 
 
 init();
+setInterval(rotateArts, 3000);
 </script>
+
 </body>
 </html>
