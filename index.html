@@ -715,8 +715,15 @@ function renderExc(){
   if (!EXC.length) h = '<div class="msg" style="padding:12px">Nessuna esclusione.</div>';
   EXC.forEach(function(r){
     var m = r.modo === "pari" ? "solo pari" : (r.modo === "dispari" ? "solo dispari" : "tutte");
+    var saveE = EXC; EXC = [r];
+    var seen = {}, hid = 0;
+    RAW.forEach(function(x){
+      if (!seen[x.ubicazione]){ seen[x.ubicazione] = 1; if (isExcluded(x.ubicazione)) hid++; }
+    });
+    EXC = saveE;
     h += '<div class="ex-row"><span>' + esc(r.da) + ' → ' + esc(r.a) +
-      '<br><small>' + m + '</small></span><button data-id="' + r.id + '">Elimina</button></div>';
+      '<br><small>' + m + ' | nascoste: ' + hid + '</small></span><button data-id="' + r.id + '">Elimina</button></div>';
+
   });
   $("exList").innerHTML = h;
 }
