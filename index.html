@@ -1873,6 +1873,32 @@ document.addEventListener("click", function(e){
   btn.addEventListener("click", makePdf);
 })();
 
+/* ---------- CAUTARE SUS: selecteaza tot textul la focus ---------- */
+(function(){
+  var q = $("q");
+  var fromPointer = false;
+
+  q.addEventListener("pointerdown", function(){ fromPointer = true; });
+
+  q.addEventListener("focus", function(){
+    q.select();
+  });
+
+  /* la click/atingere browserul pune cursorul dupa focus si anuleaza selectia: o refacem */
+  q.addEventListener("pointerup", function(e){
+    if (fromPointer){
+      fromPointer = false;
+      if (q.selectionStart === q.selectionEnd) q.select();
+      e.preventDefault();
+    }
+  });
+  q.addEventListener("mouseup", function(e){ e.preventDefault(); });
+  q.addEventListener("touchend", function(){
+    setTimeout(function(){ q.select(); }, 0);
+  });
+})();
+
+
 </script>
 
 </body>
