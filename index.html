@@ -1739,6 +1739,8 @@ $("pdfBtn").addEventListener("click", exportPdf);
 
 $("fab").addEventListener("click", function(){
   $("excModal").classList.remove("on");
+  $("q").value = "";
+  $("clr").style.display = "none";
   $("sugg").style.display = "none";
   $("q").blur();
   if (selMode) exitSel();
