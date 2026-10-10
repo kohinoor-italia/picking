@@ -725,6 +725,12 @@ body:not(.showing) #resultPanel{display:none}
   .upg-go{height:44px}
 }
 
+#conn{display:inline-block;width:10px;height:10px;border-radius:50%;background:#8a979e;margin-left:8px;flex-shrink:0;font-size:0}
+#conn.ok{background:#3ecf8e}
+#conn.bad{background:#ff5a4f}
+
+
+
 </style>
 </head>
 <body>
@@ -735,10 +741,11 @@ body:not(.showing) #resultPanel{display:none}
       <span class="brand-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></span>
       <div>
         <div class="title">Picking Magazzino</div>
-        <div class="upd"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span id="updTxt">Caricamento...</span></div>
+<span id="conn" role="status" aria-label="connessione"></span>
       </div>
     </div>
-<div class="hbtns"><button class="hbtn" id="btnExc" aria-label="Ubicazioni escluse"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg></button><button class="hbtn solid" id="btnUp" aria-label="Carica Excel"><svg class="ic" viewBox="0 0 24 24"><path d="M12 16V4M6.5 9.5L12 4l5.5 5.5M4 20h16"/></svg></button></div>
+<div class="hbtns">
+<button class="hbtn" id="btnExc" aria-label="Ubicazioni escluse"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg></button><button class="hbtn solid" id="btnUp" aria-label="Carica Excel"><svg class="ic" viewBox="0 0 24 24"><path d="M12 16V4M6.5 9.5L12 4l5.5 5.5M4 20h16"/></svg></button></div>
 
 
     <input type="file" id="fileIn" accept=".xlsx" style="display:none">
@@ -1600,13 +1607,10 @@ $("selGo").addEventListener("click", async function(){
   rebuild();
 });
 
-var online = true, lastOk = Date.now(), busyHB = false, hiddenAt = 0;
-
-function withTimeout(p, ms){
-  return Promise.race([p, new Promise(function(_, rej){
-    setTimeout(function(){ rej(new Error("timeout")); }, ms);
-  })]);
-}
+/* ================= HEARTBEAT SUPABASE ================= */
+const HB_MS = 6000;
+const SB_HEADERS = {apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`};
+let hbTimer = null, hbFails = 0;
 
 async function softRefresh(){
   await loadExc();
@@ -1615,76 +1619,34 @@ async function softRefresh(){
   renderList();
   $("updTxt").textContent = fmtDate(DB.last);
 }
+function setConn(ok){
+  $('conn').className = ok ? 'ok' : 'bad';
+}
 
-var fails = 0;
-
-async function pingOnce(){
-  var ctrl = new AbortController();
-  var timer = setTimeout(function(){ ctrl.abort(); }, 10000);
+async function ping(){
   try {
-    var r = await sb.from(TABLE).select("id").limit(1).abortSignal(ctrl.signal);
-    if (r.error) throw r.error;
-    return true;
-  } catch (e){
-    return false;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function heartbeat(){
-  if (busyHB) return;
-  busyHB = true;
-  var ok = await pingOnce();
-  if (!ok){
-    await new Promise(function(res){ setTimeout(res, 1500); });
-    ok = await pingOnce();
-  }
-  if (ok){
-    fails = 0;
-    lastOk = Date.now();
-    if (!online){
-      online = true;
-      setStatus("Connessione ripristinata", 100);
-      try {
-        await softRefresh();
-        setTimeout(function(){ setStatus("", 0); }, 1500);
-      } catch (e){
-        online = false;
-        setStatus("Connessione persa... riprovo", 0, true);
-      }
+    const res = await fetch(`${SB_URL}/rest/v1/${TABLE}?select=id&limit=1`, {headers: SB_HEADERS});
+    if (!res.ok) throw new Error(res.status);
+    const recovered = hbFails >= 2 || !DB.locs.length;
+    hbFails = 0; setConn(true);
+    if (recovered && document.activeElement?.tagName !== 'INPUT'){
+      try { await softRefresh(); } catch(e){}
     }
-  } else {
-    fails++;
-    if (fails >= 2 && online){
-      online = false;
-      setStatus("Connessione persa... riprovo", 0, true);
-    }
-  }
-  busyHB = false;
+  } catch(e){ if (++hbFails >= 2) setConn(false); }
 }
-
-function hbLoop(){
-  heartbeat().then(function(){
-    setTimeout(hbLoop, (online && !fails) ? 15000 : 3000);
-  });
+function hbStart(){
+  hbStop(); ping();
+  hbTimer = setInterval(() => { if (document.visibilityState === 'visible') ping(); }, HB_MS);
 }
-
-document.addEventListener("visibilitychange", function(){
-  if (document.hidden){ hiddenAt = Date.now(); return; }
-  heartbeat().then(function(){
-    if (online && hiddenAt && Date.now() - hiddenAt > 60000) softRefresh().catch(function(){});
-    hiddenAt = 0;
-  });
-});
-window.addEventListener("online", heartbeat);
-window.addEventListener("offline", function(){
-  online = false;
-  setStatus("Connessione persa... riprovo", 0, true);
-});
+function hbStop(){ clearInterval(hbTimer); hbTimer = null; }
+document.addEventListener('visibilitychange', () => document.hidden ? hbStop() : hbStart());
+window.addEventListener('pageshow', hbStart);
+window.addEventListener('online', hbStart);
+window.addEventListener('offline', () => { hbFails = 2; setConn(false); });
 
 init();
-setTimeout(hbLoop, 8000);
+hbStart();
+
 
 
 
