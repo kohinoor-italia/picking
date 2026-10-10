@@ -1009,7 +1009,7 @@ function renderList(){
   fillLevels();
   var list = getFiltered();
   var total = list.length;
-  $("listCount").textContent = total + " ubicazioni · " + (window.HID || 0) + " righe nascoste";
+  $("listCount").innerHTML = total + " ubicazioni<br>" + (window.HID || 0) + " righe nascoste";
 
 
 
