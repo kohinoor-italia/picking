@@ -1,6 +1,6 @@
 {
-  "name": "Casele",
-  "short_name": "Casele",
+  "name": "Caselle",
+  "short_name": "Caselle",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
