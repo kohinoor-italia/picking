@@ -1320,6 +1320,25 @@ function pickCol(header, names, fallbackIdx){
   return fallbackIdx;
 }
 
+async function loadCaps(){
+  var caps = {}, from = 0, step = 1000;
+  while (true){
+    var r = await sb.from(TABLE)
+      .select("articolo,cap_max")
+      .not("cap_max", "is", null)
+      .order("id", { ascending: true })
+      .range(from, from + step - 1);
+    if (r.error){
+      if (/cap_max/i.test(r.error.message || "")) return null;
+      throw r.error;
+    }
+    r.data.forEach(function(x){ if (x.articolo) caps[x.articolo] = x.cap_max; });
+    if (r.data.length < step) break;
+    from += step;
+  }
+  return caps;
+}
+
 async function handleFile(file){
   try {
     setStatus("Lettura del file...", 5);
@@ -1357,8 +1376,17 @@ async function handleFile(file){
     if (!rows.length) throw new Error("Nessuna riga valida trovata.");
 
     setStatus("", 0);
-    var okGo = confirm("Il database attuale verra CANCELLATO completamente e sostituito con " + rows.length + " righe dal file '" + file.name + "'. Continuare?");
+    var okGo = confirm("Il database attuale verra CANCELLATO completamente e sostituito con " + rows.length + " righe dal file '" + file.name + "'. Le capacita massime verranno mantenute. Continuare?");
     if (!okGo) return;
+
+    /* 0. salvo le capacita massime esistenti (per codice articolo) */
+    setStatus("Lettura capacita...", 8);
+    var caps = await loadCaps();
+    if (caps){
+      rows.forEach(function(rw){
+        rw.cap_max = (rw.articolo && caps[rw.articolo]) ? caps[rw.articolo] : null;
+      });
+    }
 
     /* 1. inserimento dati nuovi */
     var chunk = 500;
