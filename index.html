@@ -729,6 +729,8 @@ body:not(.showing) #resultPanel{display:none}
 #conn.ok{background:#3ecf8e}
 #conn.bad{background:#ff5a4f}
 
+#pdfBtn,#selBtn{min-height:28px !important;padding:3px 10px !important;font-size:12.5px !important}
+#pdfBtn .ic,#selBtn .ic{width:14px;height:14px}
 
 
 </style>
@@ -762,7 +764,7 @@ body:not(.showing) #resultPanel{display:none}
 <div class="wrap">
   <div class="grid">
     <div class="panel" id="listPanel">
-<div class="ph"><div class="ph-t"><b>Tutte le ubicazioni</b><small id="listCount"></small></div><div style="display:flex;gap:6px"><button class="chip" id="pdfBtn" style="background:#eaf1ff;color:var(--brand);border-color:#eaf1ff;min-height:34px;padding:6px 12px;font-size:14px"><svg class="ic" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5z"/><path d="M14 3v5h5M12 11v6M9.5 14.5L12 17l2.5-2.5"/></svg>PDF</button><button class="chip" id="selBtn"><svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><path d="M8 12.5l3 3 5-6"/></svg>Seleziona</button></div></div>
+<div class="ph"><div class="ph-t"><b>Tutte le ubicazioni</b><small id="listCount"></small></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><button class="chip" id="pdfBtn" style="background:#eaf1ff;color:var(--brand);border-color:#eaf1ff;min-height:34px;padding:6px 12px;font-size:14px"><svg class="ic" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5z"/><path d="M14 3v5h5M12 11v6M9.5 14.5L12 17l2.5-2.5"/></svg>PDF</button><button class="chip" id="selBtn"><svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><path d="M8 12.5l3 3 5-6"/></svg>Seleziona</button></div></div>
 
 
 <div class="lfwrap"><div class="lfbox"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input class="lf" id="lq" type="text" placeholder="Filtra ubicazioni (es. A)" autocomplete="off" autocapitalize="off" spellcheck="false"></div></div>
