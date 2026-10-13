@@ -2268,6 +2268,25 @@ document.addEventListener("click", function(e){
   }, true);
 })();
 
+/* ---------- SCANNER BARCODE: scrie automat in cautare ---------- */
+(function(){
+  document.addEventListener("keydown", function(e){
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    if (e.key.length !== 1) return;                       // doar caractere normale
+    var a = document.activeElement;
+    if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;  // deja intr-un camp
+    if ($("excModal").classList.contains("on")) return;   // meniu excluderi deschis
+    if ($("upGuide") && $("upGuide").classList.contains("on")) return;
+
+    e.preventDefault();
+    var q = $("q");
+    q.focus();
+    q.value = e.key;                                      // primul caracter
+    q.dispatchEvent(new Event("input", { bubbles: true }));
+  }, true);
+})();
+
+
 
 </script>
 
