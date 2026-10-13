@@ -2962,15 +2962,40 @@ function walkTo(loc){
   walkPlace(m.position.x, Math.round(m.position.z / R.pitch) * R.pitch);
 }
 
+var CULL_D = 40;
+function cullPrep(){
+  R.cam.updateMatrixWorld();
+  if (!R.fr){ R.fr = new THREE.Frustum(); R.pm = new THREE.Matrix4(); R.sp = new THREE.Sphere(new THREE.Vector3(), .8); }
+  R.pm.multiplyMatrices(R.cam.projectionMatrix, R.cam.matrixWorldInverse);
+  R.fr.setFromProjectionMatrix(R.pm);
+}
+function cullIn(m){
+  var p = m.position;
+  if (W.on){
+    var c = R.cam.position, dx = p.x - c.x, dy = p.y - c.y, dz = p.z - c.z;
+    if (dx * dx + dy * dy + dz * dz > CULL_D * CULL_D) return false;
+  }
+  R.sp.center.copy(p);
+  return R.fr.intersectsSphere(R.sp);
+}
+function cullAll(){
+  if (!R.meshes.length) return;
+  cullPrep();
+  R.meshes.forEach(function(m){ m.visible = vis(m.userData.loc) && cullIn(m); });
+}
+
+
+
 function walkClear(){
   if (!R.meshes.length || !W.g) return;
   if (R.lines) R.lines.visible = false;
+  cullPrep();
   var c = R.cam.position;
   var dx = W.x - c.x, dy = .6 - c.y, dz = W.z - c.z;
   var d = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
   dx /= d; dy /= d; dz /= d;
   R.meshes.forEach(function(m){
-    if (!vis(m.userData.loc)){ m.visible = false; return; }
+    if (!vis(m.userData.loc) || !cullIn(m)){ m.visible = false; return; }
     var p = m.position;
     var vx = p.x - c.x, vy = p.y - c.y, vz = p.z - c.z;
     var t = vx * dx + vy * dy + vz * dz;
@@ -2980,6 +3005,7 @@ function walkClear(){
     m.visible = lat > (1.2 + t * .6);
   });
 }
+
 
 
 
@@ -3564,14 +3590,13 @@ function labelsUpd(){
 
 function recolor3(){
   if (!R.ren) return;
-  R.meshes.forEach(function(m){ var l = m.userData.loc; m.material = matFor(l); m.visible = vis(l); });
+  R.meshes.forEach(function(m){ m.material = matFor(m.userData.loc); });
   if (R.lines) R.lines.visible = !W.on;
-  if (W.on) walkClear();
-
+  if (W.on) walkClear(); else cullAll();
   labelsUpd();
-
   req();
 }
+
 function req(){
   if (R.raf || !R.ren) return;
   R.raf = requestAnimationFrame(function(){
@@ -3590,15 +3615,14 @@ function sizeRen(){
 }
 function camUpd(){
   if (W.on){ walkCam(); req(); return; }
-
-
   var sp = Math.sin(R.ph);
   R.cam.position.set(R.tx + R.r * sp * Math.sin(R.th), R.ty + R.r * Math.cos(R.ph), R.tz + R.r * sp * Math.cos(R.th));
   R.cam.lookAt(R.tx, R.ty, R.tz);
+  cullAll();
   labelsUpd();
   req();
-
 }
+
 function label(txt, w, h, col, font){
   var c = document.createElement("canvas"); c.width = 256; c.height = 128;
   var x = c.getContext("2d");
