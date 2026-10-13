@@ -3820,36 +3820,51 @@ function refresh(){
 
 /* ---------- piano ---------- */
 function typeOf(it){ return !it.orig ? "Aggiungi" : (!it.cur ? "Rimuovi" : "Sposta"); }
+var TEMPLOC = "A TERRA";
 function orderedPlan(){
-  var left = planItems(), out = [], guard = 0;
-  left.forEach(function(it){ it.cyc = false; });
+  var left = planItems().map(function(it){ return { it:it, from:it.orig, to:it.cur, parked:false }; });
+  var out = [], guard = 0;
+  function blockedBy(s){
+    if (!s.to) return null;
+    for (var i = 0; i < left.length; i++){ if (left[i] !== s && left[i].from === s.to) return left[i]; }
+    return null;
+  }
   while (left.length && guard++ < 5000){
     var ready = [], wait = [];
-    left.forEach(function(it){
-      var blocked = it.cur && left.some(function(o){ return o !== it && o.orig === it.cur; });
-      (blocked ? wait : ready).push(it);
-    });
-    if (!ready.length){
-      wait.forEach(function(it){ it.cyc = true; out.push(it); });
-      break;
+    left.forEach(function(s){ (blockedBy(s) ? wait : ready).push(s); });
+    if (ready.length){
+      ready.forEach(function(s){
+        out.push({ it:s.it, from:s.from || "NUOVO", to:s.to || "RIMUOVI", tipo:(s.parked ? "Riprendi" : "Sposta") });
+      });
+      left = wait;
+      continue;
     }
-    ready.forEach(function(it){ out.push(it); });
-    left = wait;
+    var pick = null;
+    for (var i = 0; i < left.length && !pick; i++){
+      var seen = [], c = left[i];
+      while (c && seen.indexOf(c) < 0){ seen.push(c); c = blockedBy(c); }
+      if (c === left[i]) pick = left[i];
+    }
+    if (!pick) pick = left[0];
+    out.push({ it:pick.it, from:pick.from, to:TEMPLOC, tipo:"Parcheggio" });
+    pick.from = TEMPLOC;
+    pick.parked = true;
   }
   return out;
 }
 function rPlan(){
   var pl = orderedPlan(), h = "";
   if (!pl.length) h = '<div class="spl-e">Nessuna modifica. Sposta, aggiungi o rimuovi articoli dalle caselle.</div>';
-  pl.forEach(function(it, i){
-    h += '<div class="spl-c"><div class="tx"><b>' + (i + 1) + '. ' + esc(it.art) + '</b><span class="ty">' + typeOf(it) + "</span>" +
-      (it.cyc ? '<span class="ty" style="background:#fef3c7;color:#b45309">Ciclo: serve posto libero</span>' : "") +
-      "<small>" + esc(it.desc) +
-      '</small><div class="mv">' + esc(it.orig || "NUOVO") + ' &rarr; <u>' + esc(it.cur || "RIMUOVI") + '</u></div></div>' +
-      '<button data-id="' + it.id + '">Annulla</button></div>';
+  pl.forEach(function(s, i){
+    var warn = s.tipo === "Parcheggio" || s.tipo === "Riprendi";
+    h += '<div class="spl-c"' + (warn ? ' style="border-color:#f59e0b;background:#fffbeb"' : '') + '><div class="tx"><b>' + (i + 1) + '. ' + esc(s.it.art) + '</b>' +
+      '<span class="ty"' + (warn ? ' style="background:#fef3c7;color:#b45309"' : '') + '>' + s.tipo + '</span>' +
+      '<small>' + esc(s.it.desc) + '</small><div class="mv">' + esc(s.from) + ' &rarr; <u>' + esc(s.to) + '</u></div></div>' +
+      '<button data-id="' + s.it.id + '">Annulla</button></div>';
   });
   $("sPlanBody").innerHTML = h;
 }
+
 
 function revert(it){
   if (!it.orig){ var i = S.items.indexOf(it); if (i >= 0) S.items.splice(i, 1); }
@@ -3873,19 +3888,23 @@ $("sPlanBtn").addEventListener("click", function(){ rPlan(); $("sPlan").classLis
 $("sPlanClose").addEventListener("click", function(){ $("sPlan").classList.remove("on"); });
 
 function planRows(){
-  return orderedPlan().map(function(it){ return [it.art, it.desc || "", it.orig || "NUOVO", it.cur || "RIMUOVI"]; });
+  return orderedPlan().map(function(s, i){
+    return [String(i + 1), s.it.art, s.it.desc || "", s.from, s.to, s.tipo];
+  });
 }
+
 
 $("sPlanXls").addEventListener("click", function(){
   var rows = planRows();
   if (!rows.length){ tst("Nessuna modifica"); return; }
   if (!window.XLSX){ tst("Libreria Excel non caricata"); return; }
-  var aoa = [["Articolo", "Descrizione", "Da", "A"]].concat(rows);
+  var aoa = [["N.", "Articolo", "Descrizione", "Da", "A", "Tipo"]].concat(rows);
   var ws = XLSX.utils.aoa_to_sheet(aoa), wb = XLSX.utils.book_new();
-  ws["!cols"] = [{ wch:18 }, { wch:44 }, { wch:14 }, { wch:14 }];
+  ws["!cols"] = [{ wch:5 }, { wch:18 }, { wch:44 }, { wch:14 }, { wch:14 }, { wch:12 }];
   XLSX.utils.book_append_sheet(wb, ws, "Piano");
   XLSX.writeFile(wb, "piano_spostamento.xlsx");
 });
+
 $("sPlanPdf").addEventListener("click", function(){
   var rows = planRows();
   if (!rows.length){ tst("Nessuna modifica da stampare"); return; }
@@ -3901,14 +3920,20 @@ $("sPlanPdf").addEventListener("click", function(){
       doc.text(rows.length + " movimenti | " + new Date().toLocaleDateString("it-IT"), 14, 21);
       doc.autoTable({
         startY: 26,
-        head: [["", "Articolo", "Descrizione", "Da", "A"]],
-        body: rows.map(function(r){ return ["", r[0], r[1], r[2], r[3]]; }),
+        head: [["N.", "Articolo", "Descrizione", "Da", "A"]],
+        body: rows.map(function(r){ return [r[0], r[1], r[2], r[3], r[4]]; }),
         theme: "grid",
         styles: { fontSize: 9, cellPadding: 1.8, lineColor: [221, 227, 236], lineWidth: .2, textColor: [27, 36, 48] },
         headStyles: { fillColor: [37, 99, 235], textColor: 255 },
-        columnStyles: { 0: { cellWidth: 9 }, 1: { cellWidth: 32 }, 3: { cellWidth: 28, fontStyle: "bold" }, 4: { cellWidth: 28, fontStyle: "bold" } },
+        columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 32 }, 3: { cellWidth: 28, fontStyle: "bold" }, 4: { cellWidth: 28, fontStyle: "bold" } },
+        didParseCell: function(d){
+          if (d.section === "body" && rows[d.row.index] && rows[d.row.index][5] !== "Sposta"){
+            d.cell.styles.fillColor = [254, 243, 199];
+          }
+        },
         margin: { left: 14, right: 14, bottom: 14 }
       });
+
       var pages = doc.internal.getNumberOfPages();
       for (var p = 1; p <= pages; p++){
         doc.setPage(p); doc.setFontSize(8); doc.setTextColor(107, 118, 134);
