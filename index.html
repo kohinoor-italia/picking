@@ -652,6 +652,17 @@ body:not(.showing) #resultPanel{display:none}
 .upg-go{width:100%;height:50px;border:0;border-radius:14px;color:#fff;font-size:16px;font-weight:700;background:linear-gradient(135deg,#0b5fff,#0846c2);box-shadow:0 6px 16px rgba(11,95,255,.3)}
 .upg-go:active{transform:scale(.98)}
 
+/* ---- scanare fara rezultat ---- */
+.nf-toast{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.9);z-index:120;background:#dc2626;color:#fff;border-radius:20px;padding:22px 30px;text-align:center;font-weight:800;font-size:26px;box-shadow:0 20px 60px rgba(220,38,38,.5);opacity:0;pointer-events:none;transition:opacity .15s,transform .15s;max-width:90vw}
+.nf-toast small{display:block;font-size:15px;font-weight:600;opacity:.9;margin-top:6px;word-break:break-all}
+.nf-toast.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+
+
+/* ---- articol scanat evidentiat ---- */
+tr.clickable.hl td{background:#fef08a !important;font-weight:700}
+tr.clickable.hl td.code{box-shadow:inset 5px 0 0 #f59e0b}
+
+
 /* ---- MENIU UPLOAD: tab-uri + stare ---- */
 .upg-tabs{display:flex;gap:4px;background:#eef1f6;border-radius:12px;padding:3px;margin-bottom:14px}
 .upg-tab{flex:1;border:0;background:transparent;color:#64748b;font-weight:700;font-size:14px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;gap:6px}
@@ -905,7 +916,7 @@ tr.clickable:hover{background:#f5f8ff}
   .selbar,.status{border:1px solid rgba(255,255,255,.08)}
   .mh{background:linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#1e3a8a 140%)}
 }
-</style>
+
 
 
 
@@ -1303,7 +1314,8 @@ function goBack(){
 }
 
 
-function showLocation(loc){
+function showLocation(loc, hl){
+
   activeLoc = loc;
   var items = DB.locMap.get(loc) || [];
   var html = '<div class="loc-head">' +
@@ -1318,14 +1330,19 @@ function showLocation(loc){
   if (items.length){
     html += '<table><thead><tr><th>Articolo</th><th>Descrizione</th></tr></thead><tbody>';
     items.forEach(function(r){
-      html += '<tr class="clickable" data-art="' + esc(r.articolo) + '"><td class="code">' + esc(r.articolo) +
+      html += '<tr class="clickable' + (hl && r.articolo === hl ? ' hl' : '') + '" data-art="' + esc(r.articolo) + '"><td class="code">' + esc(r.articolo) +
         '</td><td>' + esc(r.descrizione || "") + '</td></tr>';
     });
     html += '</tbody></table>';
   }
   openResult(html);
   markActive();
+  if (hl){
+    var hr = document.querySelector("#result tr.hl");
+    if (hr) hr.scrollIntoView({ block: "center" });
+  }
 }
+
 
 
 function showArticle(code){
@@ -1333,13 +1350,15 @@ function showArticle(code){
   var desc = recs.length ? (recs[0].descrizione || "") : "";
   var byLoc = new Map();
   recs.forEach(function(r){ byLoc.set(r.ubicazione, true); });
-  if (byLoc.size === 1){ showLocation(Array.from(byLoc.keys())[0]); return; }
+  if (byLoc.size === 1){ showLocation(Array.from(byLoc.keys())[0], code); return; }
+
   var html = '<button class="back" data-act="back">' + ic("chevL") + ' Torna alla lista</button>' +
     '<div class="art-card" style="border-top:0"><h3>' + esc(code) + '</h3><p>' + esc(desc) + '</p>' +
     '<div class="sub" style="padding:0 0 8px">Si trova in ' + byLoc.size + (byLoc.size === 1 ? " ubicazione:" : " ubicazioni:") + '</div>';
   Array.from(byLoc.keys()).sort(natCmp).forEach(function(loc){
     var others = DB.locMap.get(loc).length;
-    html += '<button class="loc-btn" data-loc="' + esc(loc) + '">' + esc(loc) +
+    html += '<button class="loc-btn" data-loc="' + esc(loc) + '" data-art="' + esc(code) + '">' + esc(loc) +
+
       '<small>' + others + ' art. qui</small></button>';
   });
   html += '</div>';
@@ -1360,7 +1379,7 @@ $("result").addEventListener("click", function(e){
   if (ex){ excludeLoc(ex.getAttribute("data-loc")); return; }
 
   var lb = e.target.closest(".loc-btn");
-  if (lb){ showLocation(lb.getAttribute("data-loc")); return; }
+  if (lb){ showLocation(lb.getAttribute("data-loc"), lb.getAttribute("data-art")); return; }
   var tr = e.target.closest("tr[data-art]");
   if (tr){ showArticle(tr.getAttribute("data-art")); }
 });
@@ -1475,6 +1494,9 @@ $("q").addEventListener("keydown", function(e){
   if (e.key === "Enter"){
     e.preventDefault();
     if (sugg.length) pickSuggestion(0);
+    else notFound(this);
+
+
   }
 });
 $("sugg").addEventListener("click", function(e){
@@ -2385,7 +2407,9 @@ var EANMAP = {};
 
 var ART2EAN = {};  // cod articol -> [ean, ...]
 
-async function loadEan(){
+
+async function loadEanFull(){
+
   try {
     var all = [], from = 0, step = 1000;
     while (true){
@@ -2477,7 +2501,81 @@ eanInp.addEventListener("change", function(){
 });
 
 
+function applyEanPairs(pairs){
+  EANMAP = {}; ART2EAN = {};
+  pairs.forEach(function(p){
+    EANMAP[p[0]] = p[1];
+    (ART2EAN[p[1]] = ART2EAN[p[1]] || []).push(p[0]);
+  });
+  if ($("q").value.trim().length >= 2) runSuggest();
+}
+
+async function loadEan(){
+  var KEY = "ean_cache_v1";
+  var c = null;
+  try { c = JSON.parse(localStorage.getItem(KEY)); } catch (e){}
+  try {
+    var r = await sb.from("ean").select("uploaded_at").order("uploaded_at", { ascending: false }).limit(1);
+    if (r.error) throw r.error;
+    var remote = r.data.length ? r.data[0].uploaded_at : null;
+
+    if (c && c.pairs && remote && c.date === remote){
+      EANDATE = c.date;
+      applyEanPairs(c.pairs);
+      return;
+    }
+
+    await loadEanFull();
+    try {
+      var pairs = Object.keys(EANMAP).map(function(k){ return [k, EANMAP[k]]; });
+      localStorage.setItem(KEY, JSON.stringify({ date: EANDATE, pairs: pairs }));
+    } catch (e2){ console.warn("Cache EAN:", e2.message || e2); }
+  } catch (e){
+    /* offline: folosește cache-ul dacă există */
+    if (c && c.pairs){ EANDATE = c.date; applyEanPairs(c.pairs); }
+    else await loadEanFull();
+  }
+}
+
+
 loadEan();
+
+/* ---------- SCANARE FARA REZULTAT: mesaj + bip + vibratie ---------- */
+var _ac = null, _nfTimer = null, _nfEl = null;
+
+function beepErr(){
+  try {
+    _ac = _ac || new (window.AudioContext || window.webkitAudioContext)();
+    if (_ac.state === "suspended") _ac.resume();
+    var o = _ac.createOscillator(), g = _ac.createGain();
+    o.type = "square";
+    o.frequency.value = 220;
+    g.gain.value = 0.15;
+    o.connect(g);
+    g.connect(_ac.destination);
+    o.start();
+    o.stop(_ac.currentTime + 0.4);
+  } catch (e){}
+}
+
+function notFound(inp){
+  var v = inp.value.trim();
+  inp.select();
+  if (v.length < 2) return;
+
+  if (!_nfEl){
+    _nfEl = document.createElement("div");
+    _nfEl.className = "nf-toast";
+    document.body.appendChild(_nfEl);
+  }
+  _nfEl.innerHTML = "Nessun risultato<small>" + esc(v) + "</small>";
+  _nfEl.classList.add("on");
+  clearTimeout(_nfTimer);
+  _nfTimer = setTimeout(function(){ _nfEl.classList.remove("on"); }, 2200);
+
+  beepErr();
+  if (navigator.vibrate) navigator.vibrate([250, 100, 250]);
+}
 
 
 </script>
