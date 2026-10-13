@@ -3787,11 +3787,22 @@ function build3(){
 }
 
 function goHome(){
+  if (R.keep){
+    if (W.on){
+      walkGeom();
+      if (R.pitch && walkBlocked(W.x, W.z)) W.z = Math.round(W.z / R.pitch) * R.pitch;
+      if (W.g) W.g.position.set(W.x, 0, W.z);
+    }
+    camUpd();
+    if (W.on) walkClear();
+    return;
+  }
   if (W.on){ walkSpawn(); return; }
   if (!R.home) return;
   R.tx = R.home.tx; R.ty = R.home.ty; R.tz = R.home.tz; R.r = R.home.r; R.th = R.home.th; R.ph = R.home.ph;
   camUpd();
 }
+
 function bind3(cv){
   var P = new Map(), down = null, last = 0, ray = new THREE.Raycaster(), v2 = new THREE.Vector2();
   var xa = new THREE.Vector3(), ya = new THREE.Vector3(), za = new THREE.Vector3();
@@ -4131,9 +4142,12 @@ $("sTop").addEventListener("click", function(){ R.ph = .05; R.th = 0; camUpd(); 
 $("sFlip").addEventListener("click", function(){
   S.flip = !S.flip;
   $("sFlip").classList.toggle("on", S.flip);
+  R.keep = true;
   rebuildView();
+  R.keep = false;
   tst(S.flip ? "Lati invertiti: pari e dispari scambiati" : "Lati in posizione normale");
 });
+
 
 
 
