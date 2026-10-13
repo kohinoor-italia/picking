@@ -2956,14 +2956,34 @@ function walkTo(loc){
   if (!m || !R.spawn || !W.g){ walkSpawn(); return; }
   walkPlace(m.position.x, Math.round(m.position.z / R.pitch) * R.pitch);
 }
+
+function walkClear(){
+  if (!R.meshes.length || !W.g) return;
+  var c = R.cam.position, bx = W.x, by = .6, bz = W.z;
+  var dx = bx - c.x, dy = by - c.y, dz = bz - c.z;
+  var L2 = dx * dx + dy * dy + dz * dz || 1, RR = 1.2;
+  R.meshes.forEach(function(m){
+    var l = m.userData.loc;
+    if (!vis(l)){ m.visible = false; return; }
+    var p = m.position;
+    var t = ((p.x - c.x) * dx + (p.y - c.y) * dy + (p.z - c.z) * dz) / L2;
+    if (t < 0 || t > .92){ m.visible = true; return; }
+    var qx = c.x + t * dx - p.x, qy = c.y + t * dy - p.y, qz = c.z + t * dz - p.z;
+    m.visible = (qx * qx + qy * qy + qz * qz) > RR * RR;
+  });
+}
+
+
 function walkCam(){
   R.r = Math.min(Math.max(R.r, 2), 14);
   R.ph = Math.min(Math.max(R.ph, .25), 1.45);
   var sp = Math.sin(R.ph), ty = .6;
   R.cam.position.set(W.x + R.r * sp * Math.sin(R.th), ty + R.r * Math.cos(R.ph), W.z + R.r * sp * Math.cos(R.th));
   R.cam.lookAt(W.x, ty, W.z);
+  walkClear();
   labelsUpd();
 }
+
 
 function walkTick(t){
   W.raf = requestAnimationFrame(walkTick);
@@ -3032,6 +3052,7 @@ function walkSet(on){
     R.ren.render(R.scene, R.cam);
   } else {
     if (W.g) W.g.visible = false;
+    recolor3();
     goHome();
   }
 }
@@ -3503,7 +3524,9 @@ function labelsUpd(){
 function recolor3(){
   if (!R.ren) return;
   R.meshes.forEach(function(m){ var l = m.userData.loc; m.material = matFor(l); m.visible = vis(l); });
+  if (W.on) walkClear();
   labelsUpd();
+
   req();
 }
 function req(){
