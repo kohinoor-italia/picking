@@ -1186,7 +1186,7 @@ body.sim-open .fab{display:none}
   <div class="sim-flt">
     <select id="sBlk"></select>
     <select id="sAis"></select>
-    <select id="sSideF"><option value="all">Entrambi i lati</option><option value="odd">Dispari</option><option value="even">Pari</option></select>
+    <select id="sSideF"><option value="all">Entrambi i lati</option><option value="odd">Dispari</option><option value="even">Pari</option><option value="seq">Senza lati</option></select>
     <select id="sLvl"></select>
     <select id="sSt"><option value="all">Tutte</option><option value="free">Libere</option><option value="busy">Occupate</option></select>
     <input id="sQ" type="search" placeholder="Cerca articolo o casella..." autocomplete="off" autocapitalize="off" spellcheck="false">
@@ -2921,10 +2921,11 @@ function walkGeom(){
   as.forEach(function(a, ai){
     var A = S.grid[b][a], x0 = A.min * CW - CW / 2, x1 = A.max * CW + CW / 2, z0 = ai * PITCH;
     bx0 = Math.min(bx0, x0); bx1 = Math.max(bx1, x1);
-    [1, 0].forEach(function(odd){
-      if (S.f.side === "odd" && !odd) return;
-      if (S.f.side === "even" && odd) return;
+    (A.seq ? [1] : [1, 0]).forEach(function(odd){
+      if (!A.seq && S.f.side === "odd" && !odd) return;
+      if (!A.seq && S.f.side === "even" && odd) return;
       var sg = odd ? -1 : 1, zf = z0 + sg * GAP / 2, zb = z0 + sg * (GAP / 2 + D);
+
       R.obst.push({ x0:x0, x1:x1, z0:Math.min(zf, zb), z1:Math.max(zf, zb) });
     });
   });
@@ -3108,7 +3109,9 @@ function tst(msg){
 function parse(loc){
   var p = String(loc).split(".");
   if (p.length === 4 && /^\d+$/.test(p[2])) return { b:p[0].toUpperCase(), a:p[1], n:parseInt(p[2],10), l:p[3] };
+  if (p.length === 2 && p[0] && /^\d+$/.test(p[1])) return { b:p[0].toUpperCase(), a:"-", n:parseInt(p[1],10), l:"-", seq:true };
   return null;
+
 }
 function buildGrid(){
   S.grid = {}; S.other = [];
@@ -3117,9 +3120,10 @@ function buildGrid(){
     if (!p){ S.other.push(loc); return; }
     var B = S.grid[p.b] = S.grid[p.b] || {};
     var A = B[p.a] = B[p.a] || { cells:{}, lv:{}, min:1e9, max:-1e9 };
+    if (p.seq) A.seq = true;
     A.cells[p.n + "|" + p.l] = loc;
     A.lv[p.l] = 1;
-    var k = Math.floor((p.n - 1) / 2);
+    var k = p.seq ? p.n - 1 : Math.floor((p.n - 1) / 2);
     if (k < A.min) A.min = k;
     if (k > A.max) A.max = k;
   });
@@ -3215,7 +3219,7 @@ function moveTo(raw){
 /* ---------- filtri ---------- */
 function vis(loc){
   var p = parse(loc);
-  if (!p) return true;
+  if (!p || p.seq) return true;
   if (S.f.side === "odd" && p.n % 2 === 0) return false;
   if (S.f.side === "even" && p.n % 2 !== 0) return false;
   if (S.f.lvl !== "all" && p.l !== S.f.lvl) return false;
@@ -3257,7 +3261,7 @@ function fillAis(){
   sel.disabled = false;
   var a = aislesOf(S.f.b);
   if (S.f.a !== "all" && a.indexOf(S.f.a) < 0) S.f.a = a[0];
-  sel.innerHTML = opts([["all", "Tutte le corsie"]].concat(a.map(function(x){ return [x, "Corsia " + x]; })), S.f.a);
+  sel.innerHTML = opts([["all", "Tutte le corsie"]].concat(a.map(function(x){ return [x, x === "-" ? "Unica" : "Corsia " + x]; })), S.f.a);
 }
 function fillLvl(){
   var set = {};
@@ -3266,10 +3270,20 @@ function fillLvl(){
   if (S.f.lvl !== "all" && !set[S.f.lvl]) S.f.lvl = "all";
   $("sLvl").innerHTML = opts([["all", "Tutti i livelli"]].concat(arr.map(function(l){ return [l, "Livello " + l]; })), S.f.lvl);
 }
+function sideSync(){
+  var as = scopeAisles(), seq = as.length > 0 && as.every(function(a){ return S.grid[S.f.b][a].seq; });
+  var sel = $("sSideF");
+  if (seq){ sel.value = "seq"; sel.disabled = true; return; }
+  sel.disabled = false;
+  if (S.f.side === "seq") S.f.side = "all";
+  sel.value = S.f.side;
+}
 function fillAll(){
   fillBlk(); fillAis(); fillLvl();
-  $("sSideF").value = S.f.side; $("sSt").value = S.f.st;
+  sideSync();
+  $("sSt").value = S.f.st;
 }
+
 function hitInfo(){
   var el = $("sHit");
   if (!S.hits){ el.textContent = ""; return; }
@@ -3294,7 +3308,18 @@ function cellHtml(loc, withName){
 }
 function aisleHtml(b, a){
   var A = S.grid[b][a];
+  if (A.seq){
+    var nc = A.max - A.min + 1;
+    var hs = '<section class="s2a"><h4>' + esc(b) + '</h4><div class="s2s"><div class="s2sl">Senza lati</div>' +
+      '<div class="s2g" style="grid-template-columns:repeat(' + nc + ',var(--cw))">';
+    for (var q = A.min; q <= A.max; q++){
+      var lc = A.cells[(q + 1) + "|-"];
+      hs += lc ? cellHtml(lc, true) : '<div class="c nil"></div>';
+    }
+    return hs + "</div></div></section>";
+  }
   var lv = Object.keys(A.lv).sort(natCmp);
+
   if (S.f.lvl !== "all") lv = lv.filter(function(l){ return l === S.f.lvl; });
   lv.reverse();
   var ncol = A.max - A.min + 1;
@@ -3594,17 +3619,18 @@ function build3(){
     var A = S.grid[b][a], lv = Object.keys(A.lv).sort(natCmp), H = lv.length * LH, z0 = ai * PITCH;
     var x0 = A.min * CW - CW / 2, x1 = A.max * CW + CW / 2;
     bx0 = Math.min(bx0, x0); bx1 = Math.max(bx1, x1); maxH = Math.max(maxH, H);
-    var nm = label(b + "." + a, 3.4, 1.7, "#1d4ed8", "bold 84px Arial");
+    var nm = label(a === "-" ? b : b + "." + a, 3.4, 1.7, "#1d4ed8", "bold 84px Arial");
     nm.position.set(x0 - 2.4, H / 2, z0); R.scene.add(nm);
-    [1, 0].forEach(function(odd){
-      if (S.f.side === "odd" && !odd) return;
-      if (S.f.side === "even" && odd) return;
+    (A.seq ? [1] : [1, 0]).forEach(function(odd){
+      if (!A.seq && S.f.side === "odd" && !odd) return;
+      if (!A.seq && S.f.side === "even" && odd) return;
       var sg = odd ? -1 : 1, zf = z0 + sg * GAP / 2, zc = z0 + sg * (GAP / 2 + D / 2), zb = z0 + sg * (GAP / 2 + D);
       var j, k;
+
       for (j = 0; j <= lv.length; j++){ var y = j * LH; L.push(x0, y, zf, x1, y, zf, x0, y, zb, x1, y, zb); }
       for (k = A.min; k <= A.max + 1; k++){ var xx = k * CW - CW / 2; L.push(xx, 0, zf, xx, H, zf, xx, 0, zb, xx, H, zb); }
       for (k = A.min; k <= A.max; k++){
-        var n = 2 * k + (odd ? 1 : 2);
+        var n = A.seq ? k + 1 : 2 * k + (odd ? 1 : 2);
         if ((k - A.min) % 5 === 0){
           var t = label(String(n), 1, .5, "#64748b", "bold 70px Arial");
           t.position.set(k * CW, -.35, zf - sg * .45); R.scene.add(t);
@@ -3889,9 +3915,9 @@ $("sView").addEventListener("click", function(e){
 /* filtri */
 $("sBlk").addEventListener("change", function(){
   S.f.b = this.value; S.f.a = aislesOf(S.f.b)[0] || "all"; S.f.lvl = "all";
-  fillAis(); fillLvl(); rebuildView();
+  fillAis(); fillLvl(); sideSync(); rebuildView();
 });
-$("sAis").addEventListener("change", function(){ S.f.a = this.value; S.f.lvl = "all"; fillLvl(); rebuildView(); });
+$("sAis").addEventListener("change", function(){ S.f.a = this.value; S.f.lvl = "all"; fillLvl(); sideSync(); rebuildView(); });
 $("sSideF").addEventListener("change", function(){ S.f.side = this.value; rebuildView(); });
 $("sLvl").addEventListener("change", function(){ S.f.lvl = this.value; rebuildView(); });
 $("sSt").addEventListener("change", function(){ S.f.st = this.value; if (S.view === "2d") r2(); else recolor3(); });
