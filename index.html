@@ -2906,7 +2906,8 @@ function walkGeom(){
   var b = S.f.b;
   R.obst = []; R.spawn = null; R.bounds = null;
   if (b === "Altre" || !S.grid[b]) return;
-  var CW = 1, D = .85, GAP = 1.7, PITCH = 2 * D + GAP + 1.3;
+  var CW = 1, D = .85, GAP = 3.5, PITCH = 2 * D + GAP + 1.3;
+
   var as = scopeAisles(), bx0 = 1e9, bx1 = -1e9;
   as.forEach(function(a, ai){
     var A = S.grid[b][a], x0 = A.min * CW - CW / 2, x1 = A.max * CW + CW / 2, z0 = ai * PITCH;
@@ -3543,7 +3544,8 @@ function build3(){
   clearScene();
   var b = S.f.b;
   if (b === "Altre" || !S.grid[b]){ tst("3D non disponibile per queste ubicazioni, usa il 2D"); req(); return; }
-  var CW = 1, D = .85, LH = .62, GAP = 1.7, PITCH = 2 * D + GAP + 1.3;
+  var CW = 1, D = .85, LH = .62, GAP = 3.5, PITCH = 2 * D + GAP + 1.3;
+
   var as = scopeAisles(), L = [], bx0 = 1e9, bx1 = -1e9, maxH = 0;
   as.forEach(function(a, ai){
     var A = S.grid[b][a], lv = Object.keys(A.lv).sort(natCmp), H = lv.length * LH, z0 = ai * PITCH;
