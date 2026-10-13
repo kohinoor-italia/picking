@@ -2959,19 +2959,23 @@ function walkTo(loc){
 
 function walkClear(){
   if (!R.meshes.length || !W.g) return;
-  var c = R.cam.position, bx = W.x, by = .6, bz = W.z;
-  var dx = bx - c.x, dy = by - c.y, dz = bz - c.z;
-  var L2 = dx * dx + dy * dy + dz * dz || 1, RR = 1.2;
+  if (R.lines) R.lines.visible = false;
+  var c = R.cam.position;
+  var dx = W.x - c.x, dy = .6 - c.y, dz = W.z - c.z;
+  var d = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+  dx /= d; dy /= d; dz /= d;
   R.meshes.forEach(function(m){
-    var l = m.userData.loc;
-    if (!vis(l)){ m.visible = false; return; }
+    if (!vis(m.userData.loc)){ m.visible = false; return; }
     var p = m.position;
-    var t = ((p.x - c.x) * dx + (p.y - c.y) * dy + (p.z - c.z) * dz) / L2;
-    if (t < 0 || t > .92){ m.visible = true; return; }
-    var qx = c.x + t * dx - p.x, qy = c.y + t * dy - p.y, qz = c.z + t * dz - p.z;
-    m.visible = (qx * qx + qy * qy + qz * qz) > RR * RR;
+    var vx = p.x - c.x, vy = p.y - c.y, vz = p.z - c.z;
+    var t = vx * dx + vy * dy + vz * dz;
+    if (t < 0 || t > d - .5){ m.visible = true; return; }
+    var lx = vx - t * dx, ly = vy - t * dy, lz = vz - t * dz;
+    var lat = Math.sqrt(lx * lx + ly * ly + lz * lz);
+    m.visible = lat > (1.2 + t * .6);
   });
 }
+
 
 
 function walkCam(){
@@ -3524,7 +3528,9 @@ function labelsUpd(){
 function recolor3(){
   if (!R.ren) return;
   R.meshes.forEach(function(m){ var l = m.userData.loc; m.material = matFor(l); m.visible = vis(l); });
+  if (R.lines) R.lines.visible = !W.on;
   if (W.on) walkClear();
+
   labelsUpd();
 
   req();
@@ -3617,7 +3623,9 @@ function build3(){
   });
   var g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.Float32BufferAttribute(L, 3));
-  R.scene.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color:0x64748b })));
+  R.lines = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color:0x64748b }));
+  R.scene.add(R.lines);
+
   var width = bx1 - bx0, depth = (as.length - 1) * PITCH + 2 * (GAP / 2 + D), cx = (bx0 + bx1) / 2, cz = (as.length - 1) * PITCH / 2;
   var fg = new THREE.PlaneGeometry(width + 10, depth + 6); fg.rotateX(-Math.PI / 2);
   var fl = new THREE.Mesh(fg, new THREE.MeshBasicMaterial({ color:0xd5dde9 }));
