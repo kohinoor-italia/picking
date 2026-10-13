@@ -2351,7 +2351,8 @@ async function handleEanFiles(files){
     if (!rows.length) throw new Error("Nessuna riga valida trovata.");
 
     setStatus("", 0);
-    if (!confirm("Aggiungere/aggiornare " + rows.length + " codici EAN da " + files.length + " file? I codici esistenti restano.")) return;
+    if (!confirm("Il database EAN attuale verra CANCELLATO e sostituito con " + rows.length + " codici da " + files.length + " file. Continuare?")) return;
+
 
     var ts = new Date().toISOString();
     rows.forEach(function(x){ x.uploaded_at = ts; });
@@ -2362,8 +2363,13 @@ async function handleEanFiles(files){
       setStatus("Caricamento EAN... " + Math.min(k + chunk, rows.length) + " / " + rows.length,
         10 + Math.round(85 * Math.min(k + chunk, rows.length) / rows.length));
     }
+    setStatus("Cancellazione codici vecchi...", 96);
+    var del = await sb.from("ean").delete().neq("uploaded_at", ts);
+    if (del.error) throw del.error;
+
     await loadEan();
     setStatus("Fatto! " + rows.length + " codici EAN.", 100);
+
     setTimeout(function(){ setStatus("", 0); }, 2500);
   } catch (e){
     setStatus("Errore: " + (e.message || e), 0, true);
