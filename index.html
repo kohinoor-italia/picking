@@ -1072,6 +1072,14 @@ body.sim-open .fab{display:none}
   .sim.walking .walk-hint{display:block}
 }
 .sim[data-v="2d"] .walk-joy,.sim[data-v="2d"] .walk-hint{display:none !important}
+
+.sb.on{background:#fff;color:#1d4ed8}
+.sb .ic{width:18px;height:18px}
+
+
+
+
+
 </style>
 
 </head>
@@ -1172,6 +1180,7 @@ body.sim-open .fab{display:none}
     <div class="sim-seg" id="sView"><button data-v="2d" class="on">2D</button><button data-v="3d">3D</button></div>
     <button class="sb" id="sUndo" aria-label="Annulla" disabled>&#8630;</button>
     <button class="sb" id="sPlanBtn">Piano<span class="n" id="sBadge" style="display:none">0</span></button>
+    <button class="sb" id="sFs" aria-label="Schermo intero"><svg class="ic" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     <button class="sb" id="sClose" aria-label="Chiudi">&#10005;</button>
   </div>
   <div class="sim-flt">
@@ -3786,6 +3795,28 @@ $("sPlanPdf").addEventListener("click", function(){
   }, 50);
 });
 
+
+function fsEl(){ return document.fullscreenElement || document.webkitFullscreenElement; }
+function fsExit(){
+  var f = document.exitFullscreen || document.webkitExitFullscreen;
+  if (f) f.call(document);
+}
+function fsToggle(){
+  if (fsEl()){ fsExit(); return; }
+  var el = $("simM"), rq = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (!rq){ tst("Schermo intero non supportato su questo dispositivo"); return; }
+  var p = rq.call(el);
+  if (p && p.catch) p.catch(function(){ tst("Schermo intero non disponibile"); });
+}
+function fsChange(){
+  $("sFs").classList.toggle("on", !!fsEl());
+  setTimeout(function(){ if (S.on && S.view === "3d") sizeRen(); }, 120);
+}
+$("sFs").addEventListener("click", fsToggle);
+document.addEventListener("fullscreenchange", fsChange);
+document.addEventListener("webkitfullscreenchange", fsChange);
+
+
 /* ---------- apri / chiudi ---------- */
 function openSim(){
   if (!DB.locs.length){ alert("Il database e vuoto."); return; }
@@ -3809,7 +3840,9 @@ function openSim(){
   if (planItems().length) tst("Simulazione ripresa: " + planItems().length + " modifiche");
 }
 function closeSim(){
+  if (fsEl()) fsExit();
   S.on = false;
+
   $("simM").classList.remove("on");
   document.body.classList.remove("sim-open");
 }
