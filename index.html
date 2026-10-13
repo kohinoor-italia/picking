@@ -3239,8 +3239,9 @@ function moveTo(raw){
   S.sel = loc;
   apply(list);
   refresh();
-  focusOn(loc);
+  if (!W.on) focusOn(loc);
 }
+
 
 /* ---------- filtri ---------- */
 function vis(loc){
