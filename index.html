@@ -653,14 +653,41 @@ body:not(.showing) #resultPanel{display:none}
 .upg-go:active{transform:scale(.98)}
 
 /* ---- scanare fara rezultat ---- */
-.nf-toast{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.9);z-index:120;background:#dc2626;color:#fff;border-radius:20px;padding:22px 30px;text-align:center;font-weight:800;font-size:26px;box-shadow:0 20px 60px rgba(220,38,38,.5);opacity:0;pointer-events:none;transition:opacity .15s,transform .15s;max-width:90vw}
-.nf-toast small{display:block;font-size:15px;font-weight:600;opacity:.9;margin-top:6px;word-break:break-all}
-.nf-toast.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.nf-toast{position:fixed;left:50%;top:50%;transform:translate(-50%,-46%) scale(.92);z-index:120;width:min(360px,88vw);background:#fff;border-radius:22px;padding:26px 22px 20px;text-align:center;box-shadow:0 30px 80px rgba(15,23,42,.45);border:1px solid #fecaca;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s}
+.nf-toast.on{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+.nf-ic{width:64px;height:64px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;background:#fef2f2;color:#dc2626}
+.nf-ic .ic{width:32px;height:32px;stroke-width:2.2}
+.nf-t{font-size:20px;font-weight:800;color:#0f172a;line-height:1.2}
+.nf-s{font-size:14px;color:#64748b;margin-top:6px;line-height:1.4}
+.nf-code{display:inline-block;margin-top:14px;padding:6px 12px;border-radius:10px;background:#f1f5f9;color:#0f172a;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums;word-break:break-all;max-width:100%}
+.nf-bar{height:4px;border-radius:2px;background:#dc2626;margin-top:16px;transform-origin:left}
+.nf-toast.warn{border-color:#fde68a}
+.nf-toast.warn .nf-ic{background:#fffbeb;color:#d97706}
+.nf-toast.warn .nf-bar{background:#f59e0b}
+@keyframes nfShrink{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+.nf-toast.on .nf-bar{animation:nfShrink 3s linear forwards}
+
+.sg .tag.nol{background:#fffbeb;color:#b45309;border:1px solid #fde68a}
+.noloc{margin:14px;padding:20px 18px;border-radius:18px;background:#fffbeb;border:1px solid #fde68a}
+.noloc-b{display:inline-block;padding:4px 12px;border-radius:999px;background:#f59e0b;color:#fff;font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase}
+.noloc h3{margin:12px 0 4px;font-size:26px;font-weight:800;color:#0f172a;word-break:break-all}
+.noloc p{margin:0 0 12px;font-size:17px;color:#334155;line-height:1.4}
+.noloc-n{font-size:13px;color:#92400e;line-height:1.45}
+
 
 
 /* ---- articol scanat evidentiat ---- */
-tr.clickable.hl td{background:#fef08a !important;font-weight:700}
-tr.clickable.hl td.code{box-shadow:inset 5px 0 0 #f59e0b}
+tr.clickable.hl td{background:linear-gradient(90deg,#e3edff,#f3f7ff) !important;font-weight:700;color:#0f172a;border-top:1px solid #bcd1fb;border-bottom:1px solid #bcd1fb}
+tr.clickable.hl td.code{box-shadow:inset 5px 0 0 #2563eb;color:#1d4ed8}
+td.dsc{max-width:0;width:100%;overflow:hidden}
+
+.mq{overflow:hidden;white-space:nowrap}
+.mq span{display:inline-block;white-space:nowrap}
+tr.clickable.hl .mq span.scroll{animation:mqmove var(--mqt,6s) ease-in-out infinite alternate}
+@keyframes mqmove{0%,15%{transform:translateX(0)}85%,100%{transform:translateX(var(--mqd))}}
+
+
+
 
 
 /* ---- MENIU UPLOAD: tab-uri + stare ---- */
@@ -1331,7 +1358,8 @@ function showLocation(loc, hl){
     html += '<table><thead><tr><th>Articolo</th><th>Descrizione</th></tr></thead><tbody>';
     items.forEach(function(r){
       html += '<tr class="clickable' + (hl && r.articolo === hl ? ' hl' : '') + '" data-art="' + esc(r.articolo) + '"><td class="code">' + esc(r.articolo) +
-        '</td><td>' + esc(r.descrizione || "") + '</td></tr>';
+        '</td><td class="dsc"><div class="mq"><span>' + esc(r.descrizione || "") + '</span></div></td></tr>';
+
     });
     html += '</tbody></table>';
   }
@@ -1341,13 +1369,30 @@ function showLocation(loc, hl){
     var hr = document.querySelector("#result tr.hl");
     if (hr) hr.scrollIntoView({ block: "center" });
   }
+  setTimeout(startMarquee, 50);
 }
 
+
+function startMarquee(){
+  var els = document.querySelectorAll("#result tr.hl .mq");
+  for (var i = 0; i < els.length; i++){
+    var box = els[i];
+    var sp = box.firstElementChild;
+    if (!sp) continue;
+    var d = sp.scrollWidth - box.clientWidth;
+    if (d > 2){
+      sp.style.setProperty("--mqd", (-(d + 4)) + "px");
+      sp.style.setProperty("--mqt", Math.max(4, Math.round(d / 25)) + "s");
+      sp.classList.add("scroll");
+    }
+  }
+}
 
 
 function showArticle(code){
   var recs = DB.artMap.get(code) || [];
-  var desc = recs.length ? (recs[0].descrizione || "") : "";
+  if (!recs.length){ showNoLoc(code); return; }
+  var desc = recs[0].descrizione || "";
   var byLoc = new Map();
   recs.forEach(function(r){ byLoc.set(r.ubicazione, true); });
   if (byLoc.size === 1){ showLocation(Array.from(byLoc.keys())[0], code); return; }
@@ -1358,12 +1403,23 @@ function showArticle(code){
   Array.from(byLoc.keys()).sort(natCmp).forEach(function(loc){
     var others = DB.locMap.get(loc).length;
     html += '<button class="loc-btn" data-loc="' + esc(loc) + '" data-art="' + esc(code) + '">' + esc(loc) +
-
       '<small>' + others + ' art. qui</small></button>';
   });
   html += '</div>';
   openResult(html);
 }
+
+function showNoLoc(code){
+  var desc = EANDESC[code] || "";
+  var html = '<button class="back" data-act="back">' + ic("chevL") + ' Torna alla lista</button>' +
+    '<div class="noloc"><span class="noloc-b">Senza casella</span>' +
+    '<h3>' + esc(code) + '</h3>' +
+    '<p>' + esc(desc || "Descrizione non disponibile") + '</p>' +
+    '<div class="noloc-n">Articolo presente nel database EAN ma non assegnato a nessuna ubicazione.</div></div>';
+  openResult(html);
+  flashToast("warn", "Articolo senza casella", desc || "Nessuna ubicazione assegnata", code);
+}
+
 
 
 function markActive(){
@@ -1380,11 +1436,19 @@ $("result").addEventListener("click", function(e){
 
   var lb = e.target.closest(".loc-btn");
   if (lb){ showLocation(lb.getAttribute("data-loc"), lb.getAttribute("data-art")); return; }
-  var tr = e.target.closest("tr[data-art]");
-  if (tr){ showArticle(tr.getAttribute("data-art")); }
+
+
 });
 
 /* ---------- search ---------- */
+function orphanArts(){
+  var out = [];
+  for (var code in ART2EAN){
+    if (!DB.artMap.has(code)) out.push({ code: code, desc: EANDESC[code] || "", nol: true });
+  }
+  return out;
+}
+
 function runSuggest(){
   var raw = $("q").value.trim();
   $("clr").style.display = $("q").value ? "block" : "none";
@@ -1395,7 +1459,6 @@ function runSuggest(){
   var tokens = qn.split(/\s+/).filter(Boolean);
   var qd = noDots(raw);
 
-  /* ubicazioni: punctele din ce scrii si din baza de date sunt ignorate */
   var locHits = [];
   for (var i = 0; i < DB.locs.length; i++){
     var ld = noDots(DB.locs[i]);
@@ -1409,10 +1472,11 @@ function runSuggest(){
   locHits = locHits.slice(0, 8);
   var locFirst = locHits.length > 0 && locHits[0].exact;
 
-  /* articole (cauta si dupa EAN) */
+  /* articole (cu casella + fara casella), cauta si dupa EAN */
   var artHits = [];
-  for (var j = 0; j < DB.artList.length; j++){
-    var a = DB.artList[j];
+  var pool = DB.artList.concat(orphanArts());
+  for (var j = 0; j < pool.length; j++){
+    var a = pool[j];
     var hay = (a.code + " " + a.desc).toLowerCase();
     var ok = true;
     for (var t = 0; t < tokens.length; t++){
@@ -1431,13 +1495,11 @@ function runSuggest(){
       var cl = a.code.toLowerCase();
       var score = ok ? (cl.indexOf(qn) === 0 ? 0 : (cl.indexOf(qn) > 0 ? 1 : 2)) : 3;
       if (eanScore < score) score = eanScore;
-      artHits.push({ a: eanHit ? { code: a.code, desc: eanHit + " · " + a.desc } : a, score: score });
+      artHits.push({ a: eanHit ? { code: a.code, desc: eanHit + " \u00b7 " + a.desc, nol: a.nol } : a, score: score });
     }
   }
   artHits.sort(function(x,y){ return x.score - y.score || natCmp(x.a.code, y.a.code); });
   artHits = artHits.slice(0, 15);
-
-
 
   sugg = [];
   var html = "";
@@ -1455,21 +1517,23 @@ function runSuggest(){
       var tag = cnt ? '<span class="tag">' + cnt + ' art.</span>' : '<span class="tag empty">libera</span>';
       html += '<button class="sg" data-i="' + (sugg.length - 1) + '"><span class="sg-ico">' + ic("pin") + '</span><span class="sg-body"><b>' + esc(h.loc) + '</b>' + line + '</span>' + tag + '</button>';
     });
-
-
-
   }
   function addArts(){
     if (!artHits.length) return;
     html += '<div class="sg-h">Articoli</div>';
     artHits.forEach(function(h){
-      var locs = {};
-      DB.artMap.get(h.a.code).forEach(function(r){ locs[r.ubicazione] = 1; });
-      var ll = Object.keys(locs).sort(natCmp);
-      var hint = ll[0] + (ll.length > 1 ? " +" + (ll.length - 1) : "");
+      var tag;
+      if (h.a.nol){
+        tag = '<span class="tag nol">senza casella</span>';
+      } else {
+        var locs = {};
+        DB.artMap.get(h.a.code).forEach(function(r){ locs[r.ubicazione] = 1; });
+        var ll = Object.keys(locs).sort(natCmp);
+        var hint = ll[0] + (ll.length > 1 ? " +" + (ll.length - 1) : "");
+        tag = '<span class="tag loc">' + esc(hint) + '</span>';
+      }
       sugg.push({ type: "art", key: h.a.code });
-      html += '<button class="sg" data-i="' + (sugg.length - 1) + '"><span class="sg-body row"><b>' + esc(h.a.code) + '</b><span class="sg-desc">' + esc(h.a.desc) + '</span></span><span class="tag loc">' + esc(hint) + '</span></button>';
-
+      html += '<button class="sg" data-i="' + (sugg.length - 1) + '"><span class="sg-body row"><b>' + esc(h.a.code) + '</b><span class="sg-desc">' + esc(h.a.desc) + '</span></span>' + tag + '</button>';
     });
   }
 
@@ -1479,6 +1543,7 @@ function runSuggest(){
   box.innerHTML = html;
   box.style.display = "block";
 }
+
 
 
 function pickSuggestion(i){
@@ -2406,14 +2471,15 @@ var EANDATE = null;
 var EANMAP = {};
 
 var ART2EAN = {};  // cod articol -> [ean, ...]
+var EANDESC = {};  // cod articol -> descrizione
+
 
 
 async function loadEanFull(){
-
   try {
     var all = [], from = 0, step = 1000;
     while (true){
-      var r = await sb.from("ean").select("codice,codice_articolo,uploaded_at")
+      var r = await sb.from("ean").select("codice,codice_articolo,descrizione,uploaded_at")
         .order("codice", { ascending: true })
         .range(from, from + step - 1);
       if (r.error) throw r.error;
@@ -2421,17 +2487,19 @@ async function loadEanFull(){
       if (r.data.length < step) break;
       from += step;
     }
-    EANMAP = {}; ART2EAN = {};
+    EANMAP = {}; ART2EAN = {}; EANDESC = {};
     all.forEach(function(x){
       var art = String(x.codice_articolo).trim();
-EANMAP[x.codice] = art;
-if (x.uploaded_at && (!EANDATE || x.uploaded_at > EANDATE)) EANDATE = x.uploaded_at;
-
+      EANMAP[x.codice] = art;
+      if (x.descrizione && !EANDESC[art]) EANDESC[art] = x.descrizione;
+      if (x.uploaded_at && (!EANDATE || x.uploaded_at > EANDATE)) EANDATE = x.uploaded_at;
       (ART2EAN[art] = ART2EAN[art] || []).push(x.codice);
     });
-    if ($("q").value.trim().length >= 2) runSuggest();
+    if (document.activeElement === $("q") && $("q").value.trim().length >= 2) runSuggest();
+
   } catch (e){ console.warn("EAN:", e.message || e); }
 }
+
 
 async function handleEanFiles(files){
   try {
@@ -2502,16 +2570,19 @@ eanInp.addEventListener("change", function(){
 
 
 function applyEanPairs(pairs){
-  EANMAP = {}; ART2EAN = {};
+  EANMAP = {}; ART2EAN = {}; EANDESC = {};
   pairs.forEach(function(p){
     EANMAP[p[0]] = p[1];
+    if (p[2] && !EANDESC[p[1]]) EANDESC[p[1]] = p[2];
     (ART2EAN[p[1]] = ART2EAN[p[1]] || []).push(p[0]);
   });
-  if ($("q").value.trim().length >= 2) runSuggest();
+  if (document.activeElement === $("q") && $("q").value.trim().length >= 2) runSuggest();
+
 }
 
+
 async function loadEan(){
-  var KEY = "ean_cache_v1";
+  var KEY = "ean_cache_v2";
   var c = null;
   try { c = JSON.parse(localStorage.getItem(KEY)); } catch (e){}
   try {
@@ -2527,15 +2598,15 @@ async function loadEan(){
 
     await loadEanFull();
     try {
-      var pairs = Object.keys(EANMAP).map(function(k){ return [k, EANMAP[k]]; });
+      var pairs = Object.keys(EANMAP).map(function(k){ return [k, EANMAP[k], EANDESC[EANMAP[k]] || ""]; });
       localStorage.setItem(KEY, JSON.stringify({ date: EANDATE, pairs: pairs }));
     } catch (e2){ console.warn("Cache EAN:", e2.message || e2); }
   } catch (e){
-    /* offline: folosește cache-ul dacă există */
     if (c && c.pairs){ EANDATE = c.date; applyEanPairs(c.pairs); }
     else await loadEanFull();
   }
 }
+
 
 
 loadEan();
@@ -2558,24 +2629,43 @@ function beepErr(){
   } catch (e){}
 }
 
+function flashToast(kind, title, sub, code){
+  if (!_nfEl){
+    _nfEl = document.createElement("div");
+    _nfEl.addEventListener("click", function(){ _nfEl.classList.remove("on"); });
+    document.body.appendChild(_nfEl);
+  }
+  var icon = kind === "warn"
+    ? '<path d="M12 4l9 16H3L12 4z"/><path d="M12 10v4M12 17.5v.01"/>'
+    : '<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>';
+  _nfEl.className = "nf-toast" + (kind === "warn" ? " warn" : "");
+  _nfEl.innerHTML =
+    '<div class="nf-ic"><svg class="ic" viewBox="0 0 24 24">' + icon + '</svg></div>' +
+    '<div class="nf-t">' + esc(title) + '</div>' +
+    '<div class="nf-s">' + esc(sub) + '</div>' +
+    (code ? '<div class="nf-code">' + esc(code) + '</div>' : '') +
+    '<div class="nf-bar"></div>';
+  void _nfEl.offsetWidth;
+  _nfEl.classList.add("on");
+  clearTimeout(_nfTimer);
+  _nfTimer = setTimeout(function(){ _nfEl.classList.remove("on"); }, 3000);
+
+  beepErr();
+  if (navigator.vibrate) navigator.vibrate(kind === "warn" ? [150, 80, 150] : [250, 100, 250]);
+}
+
 function notFound(inp){
   var v = inp.value.trim();
   inp.select();
   if (v.length < 2) return;
-
-  if (!_nfEl){
-    _nfEl = document.createElement("div");
-    _nfEl.className = "nf-toast";
-    document.body.appendChild(_nfEl);
+  var isEan = /^\d{8,14}$/.test(v);
+  if (isEan){
+    flashToast("err", "EAN inesistente", "Non esiste nel database e non ha casella", v);
+  } else {
+    flashToast("err", "Nessun risultato", "Nessun articolo o ubicazione trovata", v);
   }
-  _nfEl.innerHTML = "Nessun risultato<small>" + esc(v) + "</small>";
-  _nfEl.classList.add("on");
-  clearTimeout(_nfTimer);
-  _nfTimer = setTimeout(function(){ _nfEl.classList.remove("on"); }, 2200);
-
-  beepErr();
-  if (navigator.vibrate) navigator.vibrate([250, 100, 250]);
 }
+
 
 
 </script>
