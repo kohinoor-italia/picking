@@ -3509,9 +3509,11 @@ function labelsUpd(){
     if (!show){ if (sp) sp.visible = false; return; }
     var txt = it[0].art + (it.length > 1 ? " +" + (it.length - 1) : "");
     if (!sp){
-      sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: labTex(txt), transparent: true }));
-      sp.scale.set(.88, .22, 1);
-      sp.position.set(0, 0, -(m.userData.sg || 1) * .42);
+      R.labGeo = R.labGeo || new THREE.PlaneGeometry(.88, .22);
+      var sgn = m.userData.sg || 1;
+      sp = new THREE.Mesh(R.labGeo, new THREE.MeshBasicMaterial({ map: labTex(txt), transparent: true, side: THREE.FrontSide, depthWrite: false }));
+      sp.position.set(0, 0, -sgn * .36);
+      if (sgn > 0) sp.rotation.y = Math.PI;
       sp.userData.t = txt;
       m.add(sp);
       m.userData.sp = sp;
