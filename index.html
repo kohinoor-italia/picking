@@ -2963,26 +2963,17 @@ function walkTo(loc){
 }
 
 var CULL_D = 40;
-function cullPrep(){
-  R.cam.updateMatrixWorld();
-  if (!R.fr){ R.fr = new THREE.Frustum(); R.pm = new THREE.Matrix4(); R.sp = new THREE.Sphere(new THREE.Vector3(), .8); }
-  R.pm.multiplyMatrices(R.cam.projectionMatrix, R.cam.matrixWorldInverse);
-  R.fr.setFromProjectionMatrix(R.pm);
-}
+function cullPrep(){}
 function cullIn(m){
-  var p = m.position;
-  if (W.on){
-    var c = R.cam.position, dx = p.x - c.x, dy = p.y - c.y, dz = p.z - c.z;
-    if (dx * dx + dy * dy + dz * dz > CULL_D * CULL_D) return false;
-  }
-  R.sp.center.copy(p);
-  return R.fr.intersectsSphere(R.sp);
+  if (!W.on) return true;
+  var p = m.position, c = R.cam.position, dx = p.x - c.x, dy = p.y - c.y, dz = p.z - c.z;
+  return dx * dx + dy * dy + dz * dz <= CULL_D * CULL_D;
 }
 function cullAll(){
   if (!R.meshes.length) return;
-  cullPrep();
   R.meshes.forEach(function(m){ m.visible = vis(m.userData.loc) && cullIn(m); });
 }
+
 
 
 
@@ -3015,9 +3006,11 @@ function walkCam(){
   var sp = Math.sin(R.ph), ty = .6;
   R.cam.position.set(W.x + R.r * sp * Math.sin(R.th), ty + R.r * Math.cos(R.ph), W.z + R.r * sp * Math.cos(R.th));
   R.cam.lookAt(W.x, ty, W.z);
-  walkClear();
+  var now = performance.now();
+  if (now - (R.wcT || 0) > 90){ R.wcT = now; walkClear(); }
   labelsUpd();
 }
+
 
 
 function walkTick(t){
@@ -3521,8 +3514,10 @@ function ensureThree(cb){
 }
 function init3(){
   var box = $("s3d");
-  R.ren = new THREE.WebGLRenderer({ antialias:true });
-  R.ren.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  R.ren = new THREE.WebGLRenderer({ antialias:false, powerPreference:"high-performance" });
+  R.ren.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+
+
   R.ren.setClearColor(0xe9eef6, 1);
   box.appendChild(R.ren.domElement);
   R.scene = new THREE.Scene();
@@ -3531,7 +3526,8 @@ function init3(){
   var dl = new THREE.DirectionalLight(0xffffff, .65); dl.position.set(20, 40, 30); dl.userData.keep = true; R.scene.add(dl);
   R.geo = new THREE.BoxGeometry(.9, .48, .7);
   function mat(c, o){ return new THREE.MeshLambertMaterial({ color:c, transparent:o != null, opacity:o == null ? 1 : o, depthWrite:o == null }); }
-  R.M = { emp:mat(0xcbd5e1, .5), occ:mat(0x3b82f6), mod:mat(0xf59e0b), hit:mat(0xa855f7), sel:mat(0x10b981), dim:mat(0x94a3b8, .12) };
+  R.M = { emp:mat(0xdbe3ee), occ:mat(0x3b82f6), mod:mat(0xf59e0b), hit:mat(0xa855f7), sel:mat(0x10b981), dim:mat(0xeaeff5) };
+
   bind3(R.ren.domElement);
 }
 function matFor(loc){
@@ -3559,7 +3555,17 @@ function labTex(txt){
 }
 function labelsUpd(){
   if (!R.ren || !R.meshes.length) return;
-  var cp = R.cam.position, MAXD = 16, md2 = MAXD * MAXD;
+  var now = performance.now();
+  if (now - (R.labT || 0) < 150){
+    if (!R.labW) R.labW = setTimeout(function(){ R.labW = 0; labelsUpd(); }, 160);
+    return;
+  }
+  R.labT = now;
+  R.labMat = R.labMat || {};
+  function lm(t){
+    return R.labMat[t] || (R.labMat[t] = new THREE.MeshBasicMaterial({ map: labTex(t), transparent: true, side: THREE.FrontSide, depthWrite: false }));
+  }
+  var cp = R.cam.position, md2 = 12 * 12;
   R.meshes.forEach(function(m){
     var l = m.userData.loc, it = S.by.get(l) || [], sp = m.userData.sp;
     var show = it.length > 0 && m.visible && !dim(l);
@@ -3572,20 +3578,21 @@ function labelsUpd(){
     if (!sp){
       R.labGeo = R.labGeo || new THREE.PlaneGeometry(.88, .22);
       var sgn = m.userData.sg || 1;
-      sp = new THREE.Mesh(R.labGeo, new THREE.MeshBasicMaterial({ map: labTex(txt), transparent: true, side: THREE.FrontSide, depthWrite: false }));
+      sp = new THREE.Mesh(R.labGeo, lm(txt));
       sp.position.set(0, 0, -sgn * .36);
       if (sgn > 0) sp.rotation.y = Math.PI;
       sp.userData.t = txt;
       m.add(sp);
       m.userData.sp = sp;
     } else if (sp.userData.t !== txt){
-      sp.material.map = labTex(txt);
-      sp.material.needsUpdate = true;
+      sp.material = lm(txt);
       sp.userData.t = txt;
     }
     sp.visible = true;
   });
+  req();
 }
+
 
 
 function recolor3(){
@@ -3618,10 +3625,10 @@ function camUpd(){
   var sp = Math.sin(R.ph);
   R.cam.position.set(R.tx + R.r * sp * Math.sin(R.th), R.ty + R.r * Math.cos(R.ph), R.tz + R.r * sp * Math.cos(R.th));
   R.cam.lookAt(R.tx, R.ty, R.tz);
-  cullAll();
   labelsUpd();
   req();
 }
+
 
 function label(txt, w, h, col, font){
   var c = document.createElement("canvas"); c.width = 256; c.height = 128;
@@ -3676,6 +3683,8 @@ function build3(){
           if (!loc) continue;
           var m = new THREE.Mesh(R.geo, matFor(loc));
           m.position.set(k * CW, j * LH + LH / 2, zc);
+          m.updateMatrix();
+          m.matrixAutoUpdate = false;
           m.userData.loc = loc;
           m.userData.sg = sg;
           m.visible = vis(loc);
