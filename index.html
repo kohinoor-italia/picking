@@ -3778,7 +3778,7 @@ function bind3(cv){
   });
   cv.addEventListener("pointermove", function(e){
     if (!P.has(e.pointerId)){
-      if (e.pointerType !== "mouse" || Date.now() - last < 50) return;
+      if (e.pointerType !== "mouse" || Date.now() - last < 100) return;
       last = Date.now();
       var loc = pick(e), tip = $("sTip");
       if (!loc){ tip.style.display = "none"; return; }
@@ -4023,7 +4023,9 @@ function openSim(){
 }
 function closeSim(){
   if (fsEl()) fsExit();
+  if (W.on) walkSet(false);
   S.on = false;
+
 
   $("simM").classList.remove("on");
   document.body.classList.remove("sim-open");
