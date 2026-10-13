@@ -1205,7 +1205,7 @@ body.sim-open .fab{display:none}
       </div>
 <div class="sim-tip" id="sTip"></div>
       <div class="walk-joy" id="wJoy"><i id="wKnob"></i></div>
-      <div class="walk-hint" id="wHint">WASD = muovi · Shift = corri · Q/E o trascina = gira</div>
+      <div class="walk-hint" id="wHint">WASD = muovi · Space/Shift = corri · Q/E o trascina = gira</div>
 
     </div>
     <aside class="sim-side" id="sPanel"></aside>
@@ -2972,7 +2972,8 @@ function walkTick(t){
   if (moving){
     var sn = Math.sin(R.th), cs = Math.cos(R.th);
     var dx = -sn * iz + cs * ix, dz = -cs * iz - sn * ix;
-    var sp = (K.ShiftLeft || K.ShiftRight) ? 7 : 4;
+    var sp = (K.Space || K.ShiftLeft || K.ShiftRight) ? 7 : 4;
+
     var step = sp * L * dt;
     var nx = W.x + dx * step, nz = W.z + dz * step;
     if (!walkBlocked(nx, W.z)) W.x = nx;
@@ -3031,10 +3032,11 @@ window.addEventListener("keydown", function(e){
   if (!W.on || !S.on || S.view !== "3d") return;
   var a = document.activeElement;
   if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
-  if (/^(Key[WASDQE]|Arrow(Up|Down|Left|Right)|Shift(Left|Right))$/.test(e.code)){
+  if (/^(Key[WASDQE]|Arrow(Up|Down|Left|Right)|Shift(Left|Right)|Space)$/.test(e.code)){
     W.keys[e.code] = true;
     if (e.code.indexOf("Shift") < 0) e.preventDefault();
   }
+
 }, true);
 window.addEventListener("keyup", function(e){ delete W.keys[e.code]; }, true);
 window.addEventListener("blur", function(){ W.keys = {}; });
@@ -3512,7 +3514,8 @@ function sizeRen(){
   req();
 }
 function camUpd(){
-  if (W.on){ walkCam(); return; }
+  if (W.on){ walkCam(); req(); return; }
+
 
   var sp = Math.sin(R.ph);
   R.cam.position.set(R.tx + R.r * sp * Math.sin(R.th), R.ty + R.r * Math.cos(R.ph), R.tz + R.r * sp * Math.cos(R.th));
