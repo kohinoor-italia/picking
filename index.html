@@ -652,6 +652,26 @@ body:not(.showing) #resultPanel{display:none}
 .upg-go{width:100%;height:50px;border:0;border-radius:14px;color:#fff;font-size:16px;font-weight:700;background:linear-gradient(135deg,#0b5fff,#0846c2);box-shadow:0 6px 16px rgba(11,95,255,.3)}
 .upg-go:active{transform:scale(.98)}
 
+/* ---- MENIU UPLOAD: tab-uri + stare ---- */
+.upg-tabs{display:flex;gap:4px;background:#eef1f6;border-radius:12px;padding:3px;margin-bottom:14px}
+.upg-tab{flex:1;border:0;background:transparent;color:#64748b;font-weight:700;font-size:14px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;gap:6px}
+.upg-tab .ic{width:16px;height:16px}
+.upg-tab.on{background:#fff;color:var(--brand-d);box-shadow:0 1px 4px rgba(15,23,42,.14)}
+.upg-pane{display:none}
+.upg-pane.on{display:block}
+.upg-stat{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:#f8fafc;border:1px solid var(--line);margin-bottom:12px}
+.upg-stat small{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:700}
+.upg-stat b{display:block;font-size:14px;color:var(--ink);margin-top:2px}
+.upg-age{flex-shrink:0;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px}
+.upg-age.ok{background:#ecfdf5;color:#047857}
+.upg-age.mid{background:#fffbeb;color:#b45309}
+.upg-age.old{background:#fef2f2;color:#dc2626}
+.upg-age.none{background:#f1f5f9;color:#94a3b8}
+.upg-digits{display:flex;gap:4px;margin:2px 0 8px}
+.upg-digits i{flex:1;height:30px;border-radius:8px;background:#eff4ff;color:var(--brand-d);font-style:normal;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center}
+.upg-note.warn{background:#fffbeb;border-color:#fde68a;color:#92400e}
+
+
 
 /* ================= SCHERMI 480x700 (terminale / tablet mici) ================= */
 @media (min-width:440px) and (max-width:899px) and (max-height:800px){
@@ -2232,43 +2252,102 @@ document.addEventListener("click", function(e){
 })();
 
 
-/* ---------- GHID: cum se incarca fisierul Excel ---------- */
+/* ---------- MENIU UPLOAD: Ubicazioni + EAN ---------- */
 (function(){
+  var digits = "";
+  for (var d = 0; d <= 9; d++) digits += "<i>" + d + "</i>";
+  var barcode = '<svg class="ic" viewBox="0 0 24 24"><path d="M3 5v14M7 5v14M11 5v14M15 5v14M19 5v14M21 5v14"/></svg>';
+
   var m = document.createElement("div");
   m.className = "upg";
   m.id = "upGuide";
   m.innerHTML =
     '<div class="upg-box">' +
-      '<div class="upg-h"><b>Come caricare il file Excel</b>' +
-        '<button class="upg-x" id="upgClose" aria-label="Chiudi">' + ic("ban").replace('<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>', '<path d="M6 6l12 12M18 6L6 18"/>') + '</button></div>' +
+      '<div class="upg-h"><b>Aggiorna database</b>' +
+        '<button class="upg-x" id="upgClose" aria-label="Chiudi"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
       '<div class="upg-b">' +
-        '<p class="upg-intro">Scarica il file da AD HOC seguendo questi passaggi:</p>' +
-        '<ol class="upg-steps">' +
-          '<li><span>In <b>AD HOC</b> entra in <b>Logistica</b>.</span></li>' +
-          '<li><span>Vai su <b>Report</b>.</span></li>' +
-          '<li><span>Seleziona <b>ITACOM - Stampa ubicazioni non collocate</b>.</span></li>' +
-          '<li><span>Seleziona <b>Modello XLSX</b>.</span></li>' +
-          '<li><span>Nei <b>filtri di ricerca</b> imposta dall\'ubicazione più bassa a quella più alta.</span></li>' +
-          '<li><span>Premi il pulsante arancione <span class="upg-btn">Scarica</span></span></li>' +
-        '</ol>' +
-        '<div class="upg-note">Il file .xlsx scaricato va caricato qui: sostituirà completamente il database con i dati aggiornati.</div>' +
-        '<button class="upg-go" id="upgGo">Scegli file Excel</button>' +
+        '<div class="upg-tabs">' +
+          '<button class="upg-tab on" data-tab="loc">' + ic("pin") + 'Ubicazioni</button>' +
+          '<button class="upg-tab" data-tab="ean">' + barcode + 'EAN</button>' +
+        '</div>' +
+
+        '<div class="upg-pane on" data-pane="loc">' +
+          '<div class="upg-stat"><div><small>Ultimo aggiornamento</small><b id="upgLocDate">—</b></div><span class="upg-age none" id="upgLocAge">—</span></div>' +
+          '<p class="upg-intro">Scarica il file da AD HOC seguendo questi passaggi:</p>' +
+          '<ol class="upg-steps">' +
+            '<li><span>In <b>AD HOC</b> entra in <b>Logistica</b>.</span></li>' +
+            '<li><span>Vai su <b>Report</b>.</span></li>' +
+            '<li><span>Seleziona <b>ITACOM - Stampa ubicazioni non collocate</b>.</span></li>' +
+            '<li><span>Seleziona <b>Modello XLSX</b>.</span></li>' +
+            '<li><span>Nei <b>filtri di ricerca</b> imposta dall\'ubicazione più bassa a quella più alta.</span></li>' +
+            '<li><span>Premi il pulsante arancione <span class="upg-btn">Scarica</span></span></li>' +
+          '</ol>' +
+          '<div class="upg-note">Il file .xlsx scaricato va caricato qui: sostituirà completamente il database delle ubicazioni con i dati aggiornati.</div>' +
+          '<button class="upg-go" id="upgGo">Scegli file Excel</button>' +
+        '</div>' +
+
+        '<div class="upg-pane" data-pane="ean">' +
+          '<div class="upg-stat"><div><small>Ultimo aggiornamento</small><b id="upgEanDate">—</b></div><span class="upg-age none" id="upgEanAge">—</span></div>' +
+          '<p class="upg-intro">Servono <b>10 file</b> .xlsx, uno per ogni cifra iniziale:</p>' +
+          '<div class="upg-digits">' + digits + '</div>' +
+          '<ol class="upg-steps">' +
+            '<li><span>In <b>AD HOC</b> entra in <b>Logistica</b>.</span></li>' +
+            '<li><span>Vai su <b>Articoli</b> → <b>Codici di ricerca</b>.</span></li>' +
+            '<li><span>Premi <b>Stampa</b>.</span></li>' +
+            '<li><span>Nel filtro <b>Codice</b> scegli <b>inizia con</b> e scrivi <b>0</b>.</span></li>' +
+            '<li><span>Scarica il file <b>.xlsx</b>. Ripeti per <b>1, 2, 3 … fino a 9</b>.</span></li>' +
+            '<li><span>Premi il pulsante qui sotto e seleziona <b>tutti i 10 file insieme</b>.</span></li>' +
+          '</ol>' +
+          '<div class="upg-note warn">Si scaricano le cifre da 0 a 9 perché così vengono estratti solo gli EAN (nei Codici di ricerca c\'è molta spazzatura). Seleziona <b>tutti i file insieme</b>: solo così il database viene riscritto correttamente.</div>' +
+          '<button class="upg-go" id="upgGoEan">Scegli i file EAN (0–9)</button>' +
+        '</div>' +
       '</div>' +
     '</div>';
   document.body.appendChild(m);
 
   function close(){ m.classList.remove("on"); }
+
+  function ageInfo(iso){
+    if (!iso) return { d: "Nessun dato", t: "Mai caricato", c: "none" };
+    var dt = new Date(iso);
+    var days = Math.floor((Date.now() - dt.getTime()) / 86400000);
+    return {
+      d: dt.toLocaleDateString("it-IT") + " " + dt.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }),
+      t: days <= 0 ? "Oggi" : (days === 1 ? "Ieri" : days + " giorni fa"),
+      c: days <= 7 ? "ok" : (days <= 30 ? "mid" : "old")
+    };
+  }
+  function fill(idD, idA, iso){
+    var a = ageInfo(iso);
+    $(idD).textContent = a.d;
+    $(idA).textContent = a.t;
+    $(idA).className = "upg-age " + a.c;
+  }
+  function setTab(n){
+    var t = m.querySelectorAll(".upg-tab"), p = m.querySelectorAll(".upg-pane");
+    for (var i = 0; i < t.length; i++) t[i].classList.toggle("on", t[i].getAttribute("data-tab") === n);
+    for (var j = 0; j < p.length; j++) p[j].classList.toggle("on", p[j].getAttribute("data-pane") === n);
+  }
+  function open(){
+    fill("upgLocDate", "upgLocAge", DB.last);
+    fill("upgEanDate", "upgEanAge", EANDATE);
+    setTab("loc");
+    m.classList.add("on");
+  }
+
+  m.addEventListener("click", function(e){
+    var t = e.target.closest(".upg-tab");
+    if (t) setTab(t.getAttribute("data-tab"));
+  });
   $("upgClose").addEventListener("click", close);
   m.addEventListener("mousedown", function(e){ if (e.target === m) close(); });
   document.addEventListener("keydown", function(e){
     if (e.key === "Escape" && m.classList.contains("on")) close();
   });
-  $("upgGo").addEventListener("click", function(){
-    close();
-    $("fileIn").click();
-  });
+  $("upgGo").addEventListener("click", function(){ close(); $("fileIn").click(); });
+  $("upgGoEan").addEventListener("click", function(){ close(); eanInp.click(); });
 
-  /* intercepteaza butonul de upload: parola ramane, apoi ghidul inainte de selectarea fisierului */
+  /* butonul de upload: parola, apoi meniul */
   $("btnUp").addEventListener("click", function(e){
     e.stopImmediatePropagation();
     if (!unlocked){
@@ -2277,9 +2356,10 @@ document.addEventListener("click", function(e){
       if (pw !== "kin2026"){ alert("Password errata."); return; }
       unlocked = true;
     }
-    m.classList.add("on");
+    open();
   }, true);
 })();
+
 
 /* ---------- SCANNER BARCODE: scrie automat in cautare ---------- */
 (function(){
@@ -2300,14 +2380,16 @@ document.addEventListener("click", function(e){
 })();
 
 /* ---------- EAN: tabel "ean" + upload multiplu xlsx ---------- */
-var EANMAP = {};   // ean -> cod articol
+var EANDATE = null;
+var EANMAP = {};
+
 var ART2EAN = {};  // cod articol -> [ean, ...]
 
 async function loadEan(){
   try {
     var all = [], from = 0, step = 1000;
     while (true){
-      var r = await sb.from("ean").select("codice,codice_articolo")
+      var r = await sb.from("ean").select("codice,codice_articolo,uploaded_at")
         .order("codice", { ascending: true })
         .range(from, from + step - 1);
       if (r.error) throw r.error;
@@ -2318,7 +2400,9 @@ async function loadEan(){
     EANMAP = {}; ART2EAN = {};
     all.forEach(function(x){
       var art = String(x.codice_articolo).trim();
-      EANMAP[x.codice] = art;
+EANMAP[x.codice] = art;
+if (x.uploaded_at && (!EANDATE || x.uploaded_at > EANDATE)) EANDATE = x.uploaded_at;
+
       (ART2EAN[art] = ART2EAN[art] || []).push(x.codice);
     });
     if ($("q").value.trim().length >= 2) runSuggest();
@@ -2377,32 +2461,21 @@ async function handleEanFiles(files){
   }
 }
 
-(function(){
-  var inp = document.createElement("input");
-  inp.type = "file";
-  inp.accept = ".xlsx";
-  inp.multiple = true;
-  inp.style.display = "none";
-  document.body.appendChild(inp);
+var eanInp = document.createElement("input");
+eanInp.type = "file";
+eanInp.accept = ".xlsx";
+eanInp.multiple = true;
+eanInp.style.display = "none";
+document.body.appendChild(eanInp);
 
-  var b = document.createElement("button");
-  b.className = "hbtn";
-  b.id = "btnEan";
-  b.setAttribute("aria-label", "Carica EAN");
-  b.innerHTML = '<svg class="ic" viewBox="0 0 24 24"><path d="M3 5v14M7 5v14M11 5v14M15 5v14M19 5v14M21 5v14"/></svg>';
-  var hb = document.querySelector(".hbtns");
-  hb.insertBefore(b, hb.firstChild);
+eanInp.addEventListener("change", function(){
+  var fl = Array.from(this.files);
+  this.value = "";
+  if (!fl.length) return;
+  if (fl.length < 10 && !confirm("Hai selezionato " + fl.length + " file, ma ne servono 10 (da 0 a 9). Con meno file il database EAN sarà incompleto. Continuare comunque?")) return;
+  handleEanFiles(fl);
+});
 
-  b.addEventListener("click", function(){
-    if (!askUnlock()) return;
-    inp.click();
-  });
-  inp.addEventListener("change", function(){
-    var fl = Array.from(this.files);
-    this.value = "";
-    if (fl.length) handleEanFiles(fl);
-  });
-})();
 
 loadEan();
 
