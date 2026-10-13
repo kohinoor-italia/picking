@@ -1220,6 +1220,8 @@ body.sim-open .fab{display:none}
         <button class="z3" id="sRst" aria-label="Reimposta vista">&#8634;</button>
 <button class="z3" id="sTop" aria-label="Dall'alto">&#8657;</button>
         <button class="z3" id="sWalk" aria-label="Cammina">🚶</button>
+        <button class="z3" id="sFlip" aria-label="Inverti pari/dispari">⇅</button>
+
 
       </div>
 <div class="sim-tip" id="sTip"></div>
@@ -2937,7 +2939,9 @@ function walkGeom(){
     (sq ? [1] : [1, 0]).forEach(function(odd){
       if (!sq && S.f.side === "odd" && !odd) return;
       if (!sq && S.f.side === "even" && odd) return;
-      var sg = odd ? -1 : 1, zf = z0 + sg * GAP / 2, zb = z0 + sg * (GAP / 2 + D);
+      var sg = (!!odd !== !!S.flip) ? -1 : 1, zf = z0 + sg * GAP / 2, zb = z0 + sg * (GAP / 2 + D);
+
+
 
       R.obst.push({ x0:x0, x1:x1, z0:Math.min(zf, zb), z1:Math.max(zf, zb) });
     });
@@ -2979,6 +2983,24 @@ function cullIn(m){
   var p = m.position, c = R.cam.position, dx = p.x - c.x, dy = p.y - c.y, dz = p.z - c.z;
   return dx * dx + dy * dy + dz * dz <= CULL_D * CULL_D;
 }
+function setV(m, v){ if (m.visible !== v){ m.visible = v; R.dirty = true; } }
+function instSync(){
+  var I = R.inst;
+  if (!I || !R.dirty) return;
+  R.dirty = false;
+  var n = 0, vs = R.vis = [];
+  R.meshes.forEach(function(c){
+    if (!c.visible) return;
+    I.setMatrixAt(n, c.mat);
+    I.setColorAt(n, c.col);
+    vs.push(c);
+    n++;
+  });
+  I.count = n;
+  I.instanceMatrix.needsUpdate = true;
+  if (I.instanceColor) I.instanceColor.needsUpdate = true;
+  req();
+}
 function cullAll(){
   if (!R.meshes.length) return;
   var c = R.cam.position;
@@ -2987,18 +3009,19 @@ function cullAll(){
   dx /= d; dy /= d; dz /= d;
   var see = !W.on && R.r < 30;
   R.meshes.forEach(function(m){
-    var l = m.userData.loc;
-    if (!vis(l) || !cullIn(m)){ m.visible = false; return; }
-    if (!see || l === S.sel){ m.visible = true; return; }
+    if (!m.vf || !cullIn(m)){ setV(m, false); return; }
+    if (!see || m.userData.loc === S.sel){ setV(m, true); return; }
     var p = m.position;
     var vx = p.x - c.x, vy = p.y - c.y, vz = p.z - c.z;
     var t = vx * dx + vy * dy + vz * dz;
-    if (t < 0 || t > d - .5){ m.visible = true; return; }
+    if (t < 0 || t > d - .5){ setV(m, true); return; }
     var lx = vx - t * dx, ly = vy - t * dy, lz = vz - t * dz;
     var lat = Math.sqrt(lx * lx + ly * ly + lz * lz);
-    m.visible = lat > (.9 + t * .12);
+    setV(m, lat > (.9 + t * .12));
   });
+  instSync();
 }
+
 
 
 
@@ -3007,22 +3030,23 @@ function cullAll(){
 function walkClear(){
   if (!R.meshes.length || !W.g) return;
   if (R.lines) R.lines.visible = false;
-  cullPrep();
   var c = R.cam.position;
   var dx = W.x - c.x, dy = .6 - c.y, dz = W.z - c.z;
   var d = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
   dx /= d; dy /= d; dz /= d;
   R.meshes.forEach(function(m){
-    if (!vis(m.userData.loc) || !cullIn(m)){ m.visible = false; return; }
+    if (!m.vf || !cullIn(m)){ setV(m, false); return; }
     var p = m.position;
     var vx = p.x - c.x, vy = p.y - c.y, vz = p.z - c.z;
     var t = vx * dx + vy * dy + vz * dz;
-    if (t < 0 || t > d - .5){ m.visible = true; return; }
+    if (t < 0 || t > d - .5){ setV(m, true); return; }
     var lx = vx - t * dx, ly = vy - t * dy, lz = vz - t * dz;
     var lat = Math.sqrt(lx * lx + ly * ly + lz * lz);
-    m.visible = lat > (1.2 + t * .6);
+    setV(m, lat > (1.2 + t * .6));
   });
+  instSync();
 }
+
 
 
 
@@ -3554,18 +3578,21 @@ function init3(){
   var dl = new THREE.DirectionalLight(0xffffff, .65); dl.position.set(20, 40, 30); dl.userData.keep = true; R.scene.add(dl);
   R.geo = new THREE.BoxGeometry(.9, .48, .7);
   function mat(c, o){ return new THREE.MeshLambertMaterial({ color:c, transparent:o != null, opacity:o == null ? 1 : o, depthWrite:o == null }); }
-  R.M = { emp:mat(0xdbe3ee), occ:mat(0x3b82f6), mod:mat(0xf59e0b), hit:mat(0xa855f7), sel:mat(0x10b981), dim:mat(0xeaeff5) };
+  R.mat = new THREE.MeshLambertMaterial({ color:0xffffff });
+  R.C = { emp:new THREE.Color(0xdbe3ee), occ:new THREE.Color(0x3b82f6), mod:new THREE.Color(0xf59e0b), hit:new THREE.Color(0xa855f7), sel:new THREE.Color(0x10b981), dim:new THREE.Color(0xeaeff5) };
+
 
   bind3(R.ren.domElement);
 }
-function matFor(loc){
-  var M = R.M, n = (S.by.get(loc) || []).length;
-  if (S.sel === loc) return M.sel;
-  if (S.hits && S.hits.has(loc)) return M.hit;
-  if (dim(loc)) return M.dim;
-  if (S.mod.has(loc)) return M.mod;
-  return n ? M.occ : M.emp;
+function colFor(loc){
+  var C = R.C, n = (S.by.get(loc) || []).length;
+  if (S.sel === loc) return C.sel;
+  if (S.hits && S.hits.has(loc)) return C.hit;
+  if (dim(loc)) return C.dim;
+  if (S.mod.has(loc)) return C.mod;
+  return n ? C.occ : C.emp;
 }
+
 
 function labTex(txt){
   R.tex = R.tex || {};
@@ -3595,7 +3622,7 @@ function labelsUpd(){
   }
   var cp = R.cam.position, md2 = 12 * 12;
   R.meshes.forEach(function(m){
-    var l = m.userData.loc, it = S.by.get(l) || [], sp = m.userData.sp;
+    var u = m.userData, l = u.loc, it = S.by.get(l) || [], sp = u.sp;
     var show = it.length > 0 && m.visible && !dim(l);
     if (show){
       var dx = m.position.x - cp.x, dy = m.position.y - cp.y, dz = m.position.z - cp.z;
@@ -3605,13 +3632,15 @@ function labelsUpd(){
     var txt = it[0].art + (it.length > 1 ? " +" + (it.length - 1) : "");
     if (!sp){
       R.labGeo = R.labGeo || new THREE.PlaneGeometry(.88, .22);
-      var sgn = m.userData.sg || 1;
       sp = new THREE.Mesh(R.labGeo, lm(txt));
-      sp.position.set(0, 0, -sgn * .36);
-      if (sgn > 0) sp.rotation.y = Math.PI;
+      sp.position.set(m.position.x, m.position.y, m.position.z - u.sg * .36);
+      if (u.sg > 0) sp.rotation.y = Math.PI;
+      sp.updateMatrix();
+      sp.matrixAutoUpdate = false;
+      sp.userData.lab = true;
       sp.userData.t = txt;
-      m.add(sp);
-      m.userData.sp = sp;
+      R.scene.add(sp);
+      u.sp = sp;
     } else if (sp.userData.t !== txt){
       sp.material = lm(txt);
       sp.userData.t = txt;
@@ -3623,14 +3652,17 @@ function labelsUpd(){
 
 
 
+
 function recolor3(){
   if (!R.ren) return;
-  R.meshes.forEach(function(m){ m.material = matFor(m.userData.loc); });
+  R.meshes.forEach(function(m){ m.col = colFor(m.userData.loc); });
+  R.dirty = true;
   if (R.lines) R.lines.visible = !W.on;
   if (W.on) walkClear(); else cullAll();
   labelsUpd();
   req();
 }
+
 
 function req(){
   if (R.raf || !R.ren) return;
@@ -3674,11 +3706,14 @@ function clearScene(){
     var o = R.scene.children[i];
     if (o.userData.keep) continue;
     R.scene.remove(o);
-    if (o.isSprite){ o.material.map.dispose(); o.material.dispose(); }
-    else if (!o.userData.loc){ if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }
+    if (o.userData.inst){ o.dispose(); }
+    else if (o.userData.lab){ /* geometrie și material partajate */ }
+    else if (o.isSprite){ o.material.map.dispose(); o.material.dispose(); }
+    else { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }
   }
-  R.meshes = []; R.byLoc = {};
+  R.meshes = []; R.byLoc = {}; R.vis = []; R.inst = null;
 }
+
 function build3(){
   clearScene();
   var b = S.f.b;
@@ -3697,7 +3732,9 @@ function build3(){
     (sq ? [1] : [1, 0]).forEach(function(odd){
       if (!sq && S.f.side === "odd" && !odd) return;
       if (!sq && S.f.side === "even" && odd) return;
-      var sg = odd ? -1 : 1, zf = z0 + sg * GAP / 2, zc = z0 + sg * (GAP / 2 + D / 2), zb = z0 + sg * (GAP / 2 + D);
+      var sg = (!!odd !== !!S.flip) ? -1 : 1, zf = z0 + sg * GAP / 2, zc = z0 + sg * (GAP / 2 + D / 2), zb = z0 + sg * (GAP / 2 + D);
+
+
       var j, k;
 
       for (j = 0; j <= lv.length; j++){ var y = j * LH; L.push(x0, y, zf, x1, y, zf, x0, y, zb, x1, y, zb); }
@@ -3711,19 +3748,28 @@ function build3(){
         for (j = 0; j < lv.length; j++){
           var loc = A.cells[n + "|" + lv[j]];
           if (!loc) continue;
-          var m = new THREE.Mesh(R.geo, matFor(loc));
-          m.position.set(k * CW, j * LH + LH / 2, zc);
-          m.updateMatrix();
-          m.matrixAutoUpdate = false;
-          m.userData.loc = loc;
-          m.userData.sg = sg;
-          m.visible = vis(loc);
-
-          R.scene.add(m); R.meshes.push(m); R.byLoc[loc] = m;
+          var vf = vis(loc);
+          var p = new THREE.Vector3(k * CW, j * LH + LH / 2, zc);
+          var cell = {
+            position: p, visible: vf, vf: vf, col: colFor(loc),
+            mat: new THREE.Matrix4().makeTranslation(p.x, p.y, p.z),
+            userData: { loc: loc, sg: sg, sp: null }
+          };
+          R.meshes.push(cell); R.byLoc[loc] = cell;
         }
       }
     });
   });
+
+  if (R.meshes.length){
+    R.inst = new THREE.InstancedMesh(R.geo, R.mat, R.meshes.length);
+    R.inst.frustumCulled = false;
+    R.inst.userData.inst = true;
+    R.inst.setColorAt(0, R.C.occ);
+    R.scene.add(R.inst);
+    R.dirty = true;
+    instSync();
+  }
 
   var g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.Float32BufferAttribute(L, 3));
@@ -3739,6 +3785,7 @@ function build3(){
   R.home = { tx:cx, ty:maxH / 2, tz:cz, r:Math.min(Math.max(r, 8), 400), th:.35, ph:1.05 };
   goHome();
 }
+
 function goHome(){
   if (W.on){ walkSpawn(); return; }
   if (!R.home) return;
@@ -3762,13 +3809,16 @@ function bind3(cv){
   }
   function dist(a, b){ return Math.hypot(a.x - b.x, a.y - b.y); }
   function pick(e, hover){
+    if (!R.inst || !R.inst.count) return null;
     var rc = cv.getBoundingClientRect();
     v2.x = ((e.clientX - rc.left) / rc.width) * 2 - 1;
     v2.y = -((e.clientY - rc.top) / rc.height) * 2 + 1;
     ray.setFromCamera(v2, R.cam);
-    var hit = ray.intersectObjects(R.meshes.filter(function(m){ return m.visible; }), false)[0];
-    return hit ? hit.object.userData.loc : null;
+    var hit = ray.intersectObject(R.inst, false)[0];
+    var c = hit ? R.vis[hit.instanceId] : null;
+    return c ? c.userData.loc : null;
   }
+
   cv.addEventListener("contextmenu", function(e){ e.preventDefault(); });
   cv.addEventListener("pointerdown", function(e){
     cv.setPointerCapture(e.pointerId);
@@ -4078,6 +4128,13 @@ $("sZm").addEventListener("click", function(){
 });
 $("sRst").addEventListener("click", goHome);
 $("sTop").addEventListener("click", function(){ R.ph = .05; R.th = 0; camUpd(); });
+$("sFlip").addEventListener("click", function(){
+  S.flip = !S.flip;
+  $("sFlip").classList.toggle("on", S.flip);
+  rebuildView();
+  tst(S.flip ? "Pari e acum pe partea opusă (inversat)" : "Pari/dispari pe poziția normală");
+});
+
 
 /* tastiera: blocca lo scanner di fondo e gestisce Esc / Ctrl+Z */
 window.addEventListener("keydown", function(e){
