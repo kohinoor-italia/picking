@@ -1370,7 +1370,7 @@ function runSuggest(){
   locHits = locHits.slice(0, 8);
   var locFirst = locHits.length > 0 && locHits[0].exact;
 
-  /* articole */
+  /* articole (cauta si dupa EAN) */
   var artHits = [];
   for (var j = 0; j < DB.artList.length; j++){
     var a = DB.artList[j];
@@ -1379,13 +1379,26 @@ function runSuggest(){
     for (var t = 0; t < tokens.length; t++){
       if (hay.indexOf(tokens[t]) === -1){ ok = false; break; }
     }
-    if (ok){
-      var score = a.code.toLowerCase().indexOf(qn) === 0 ? 0 : (a.code.toLowerCase().indexOf(qn) > 0 ? 1 : 2);
-      artHits.push({ a: a, score: score });
+    var eanHit = "", eanScore = 9;
+    var eans = ART2EAN[a.code];
+    if (eans && qn.length >= 4){
+      for (var e = 0; e < eans.length; e++){
+        var ev = eans[e].toLowerCase();
+        if (ev === qn){ eanHit = eans[e]; eanScore = -1; break; }
+        if (qn.length >= 5 && ev.indexOf(qn) !== -1 && eanScore > 0){ eanHit = eans[e]; eanScore = 0; }
+      }
+    }
+    if (ok || eanHit){
+      var cl = a.code.toLowerCase();
+      var score = ok ? (cl.indexOf(qn) === 0 ? 0 : (cl.indexOf(qn) > 0 ? 1 : 2)) : 3;
+      if (eanScore < score) score = eanScore;
+      artHits.push({ a: eanHit ? { code: a.code, desc: eanHit + " · " + a.desc } : a, score: score });
     }
   }
   artHits.sort(function(x,y){ return x.score - y.score || natCmp(x.a.code, y.a.code); });
   artHits = artHits.slice(0, 15);
+
+
 
   sugg = [];
   var html = "";
@@ -2286,6 +2299,106 @@ document.addEventListener("click", function(e){
   }, true);
 })();
 
+/* ---------- EAN: tabel "ean" + upload multiplu xlsx ---------- */
+var EANMAP = {};   // ean -> cod articol
+var ART2EAN = {};  // cod articol -> [ean, ...]
+
+async function loadEan(){
+  try {
+    var all = [], from = 0, step = 1000;
+    while (true){
+      var r = await sb.from("ean").select("codice,codice_articolo")
+        .order("codice", { ascending: true })
+        .range(from, from + step - 1);
+      if (r.error) throw r.error;
+      all = all.concat(r.data);
+      if (r.data.length < step) break;
+      from += step;
+    }
+    EANMAP = {}; ART2EAN = {};
+    all.forEach(function(x){
+      var art = String(x.codice_articolo).trim();
+      EANMAP[x.codice] = art;
+      (ART2EAN[art] = ART2EAN[art] || []).push(x.codice);
+    });
+    if ($("q").value.trim().length >= 2) runSuggest();
+  } catch (e){ console.warn("EAN:", e.message || e); }
+}
+
+async function handleEanFiles(files){
+  try {
+    var map = new Map();
+    for (var f = 0; f < files.length; f++){
+      setStatus("Lettura " + files[f].name + "...", 5);
+      var buf = await files[f].arrayBuffer();
+      var wb = XLSX.read(buf, { type: "array" });
+      var data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: "", raw: true });
+      if (data.length < 2) continue;
+      var hd = data[0];
+      var cE = pickCol(hd, ["codice", "ean"], 0);
+      var cA = pickCol(hd, ["codice articolo"], 2);
+      var cD = pickCol(hd, ["descrizione articolo"], 3);
+      for (var i = 1; i < data.length; i++){
+        var r = data[i];
+        var ean = String(r[cE] == null ? "" : r[cE]).trim();
+        var art = String(r[cA] == null ? "" : r[cA]).trim();
+        var des = String(r[cD] == null ? "" : r[cD]).trim();
+        if (!ean || !art) continue;
+        map.set(ean, { codice: ean, codice_articolo: art, descrizione: des || null });
+      }
+    }
+    var rows = Array.from(map.values());
+    if (!rows.length) throw new Error("Nessuna riga valida trovata.");
+
+    setStatus("", 0);
+    if (!confirm("Aggiungere/aggiornare " + rows.length + " codici EAN da " + files.length + " file? I codici esistenti restano.")) return;
+
+    var ts = new Date().toISOString();
+    rows.forEach(function(x){ x.uploaded_at = ts; });
+    var chunk = 500;
+    for (var k = 0; k < rows.length; k += chunk){
+      var up = await sb.from("ean").upsert(rows.slice(k, k + chunk), { onConflict: "codice" });
+      if (up.error) throw up.error;
+      setStatus("Caricamento EAN... " + Math.min(k + chunk, rows.length) + " / " + rows.length,
+        10 + Math.round(85 * Math.min(k + chunk, rows.length) / rows.length));
+    }
+    await loadEan();
+    setStatus("Fatto! " + rows.length + " codici EAN.", 100);
+    setTimeout(function(){ setStatus("", 0); }, 2500);
+  } catch (e){
+    setStatus("Errore: " + (e.message || e), 0, true);
+    setTimeout(function(){ setStatus("", 0); }, 6000);
+  }
+}
+
+(function(){
+  var inp = document.createElement("input");
+  inp.type = "file";
+  inp.accept = ".xlsx";
+  inp.multiple = true;
+  inp.style.display = "none";
+  document.body.appendChild(inp);
+
+  var b = document.createElement("button");
+  b.className = "hbtn";
+  b.id = "btnEan";
+  b.setAttribute("aria-label", "Carica EAN");
+  b.innerHTML = '<svg class="ic" viewBox="0 0 24 24"><path d="M3 5v14M7 5v14M11 5v14M15 5v14M19 5v14M21 5v14"/></svg>';
+  var hb = document.querySelector(".hbtns");
+  hb.insertBefore(b, hb.firstChild);
+
+  b.addEventListener("click", function(){
+    if (!askUnlock()) return;
+    inp.click();
+  });
+  inp.addEventListener("change", function(){
+    var fl = Array.from(this.files);
+    this.value = "";
+    if (fl.length) handleEanFiles(fl);
+  });
+})();
+
+loadEan();
 
 
 </script>
