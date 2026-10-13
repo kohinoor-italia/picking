@@ -3820,16 +3820,37 @@ function refresh(){
 
 /* ---------- piano ---------- */
 function typeOf(it){ return !it.orig ? "Aggiungi" : (!it.cur ? "Rimuovi" : "Sposta"); }
+function orderedPlan(){
+  var left = planItems(), out = [], guard = 0;
+  left.forEach(function(it){ it.cyc = false; });
+  while (left.length && guard++ < 5000){
+    var ready = [], wait = [];
+    left.forEach(function(it){
+      var blocked = it.cur && left.some(function(o){ return o !== it && o.orig === it.cur; });
+      (blocked ? wait : ready).push(it);
+    });
+    if (!ready.length){
+      wait.forEach(function(it){ it.cyc = true; out.push(it); });
+      break;
+    }
+    ready.forEach(function(it){ out.push(it); });
+    left = wait;
+  }
+  return out;
+}
 function rPlan(){
-  var pl = planItems(), h = "";
+  var pl = orderedPlan(), h = "";
   if (!pl.length) h = '<div class="spl-e">Nessuna modifica. Sposta, aggiungi o rimuovi articoli dalle caselle.</div>';
-  pl.forEach(function(it){
-    h += '<div class="spl-c"><div class="tx"><b>' + esc(it.art) + '</b><span class="ty">' + typeOf(it) + "</span><small>" + esc(it.desc) +
+  pl.forEach(function(it, i){
+    h += '<div class="spl-c"><div class="tx"><b>' + (i + 1) + '. ' + esc(it.art) + '</b><span class="ty">' + typeOf(it) + "</span>" +
+      (it.cyc ? '<span class="ty" style="background:#fef3c7;color:#b45309">Ciclo: serve posto libero</span>' : "") +
+      "<small>" + esc(it.desc) +
       '</small><div class="mv">' + esc(it.orig || "NUOVO") + ' &rarr; <u>' + esc(it.cur || "RIMUOVI") + '</u></div></div>' +
       '<button data-id="' + it.id + '">Annulla</button></div>';
   });
   $("sPlanBody").innerHTML = h;
 }
+
 function revert(it){
   if (!it.orig){ var i = S.items.indexOf(it); if (i >= 0) S.items.splice(i, 1); }
   else it.cur = it.orig;
@@ -3852,8 +3873,9 @@ $("sPlanBtn").addEventListener("click", function(){ rPlan(); $("sPlan").classLis
 $("sPlanClose").addEventListener("click", function(){ $("sPlan").classList.remove("on"); });
 
 function planRows(){
-  return planItems().map(function(it){ return [it.art, it.desc || "", it.orig || "NUOVO", it.cur || "RIMUOVI"]; });
+  return orderedPlan().map(function(it){ return [it.art, it.desc || "", it.orig || "NUOVO", it.cur || "RIMUOVI"]; });
 }
+
 $("sPlanXls").addEventListener("click", function(){
   var rows = planRows();
   if (!rows.length){ tst("Nessuna modifica"); return; }
