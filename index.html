@@ -1077,6 +1077,16 @@ body.sim-open .fab{display:none}
 .sb .ic{width:18px;height:18px}
 
 
+/* ---- TELEFON: simularea se deschide din iconița brand ---- */
+.brand-ic .ic-sim{display:none}
+@media (max-width:899px){
+  #btnSim{display:none}
+  .brand-ic{cursor:pointer}
+  .brand-ic:active{transform:scale(.92);filter:brightness(1.2)}
+  .brand-ic .ic-box{display:none}
+  .brand-ic .ic-sim{display:inline-block}
+}
+
 
 
 
@@ -4078,7 +4088,26 @@ if (hb){
 }
 })();
 
+/* iconița brand deschide simularea (doar telefon) */
+(function(){
+  var ic = document.querySelector(".brand-ic");
+  var b = document.getElementById("btnSim");
+  if (!ic || !b) return;
+  var box = ic.querySelector("svg");
+  if (box) box.classList.add("ic-box");
+  var sim = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  sim.setAttribute("class", "ic ic-sim");
+  sim.setAttribute("viewBox", "0 0 24 24");
+  sim.innerHTML = '<path d="M4 3v18M20 3v18M4 8.5h16M4 14.5h16M4 20.5h16"/><rect x="7" y="4.5" width="3" height="3" rx=".5"/><rect x="12" y="10.5" width="4" height="3" rx=".5"/><rect x="8" y="16.5" width="3.5" height="3" rx=".5"/>';
+  ic.appendChild(sim);
+  ic.addEventListener("click", function(){
+    if (window.matchMedia("(max-width:899px)").matches) b.click();
+  });
+})();
+
+
 </script>
+
 
 </body>
 </html>
