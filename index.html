@@ -2981,8 +2981,25 @@ function cullIn(m){
 }
 function cullAll(){
   if (!R.meshes.length) return;
-  R.meshes.forEach(function(m){ m.visible = vis(m.userData.loc) && cullIn(m); });
+  var c = R.cam.position;
+  var dx = R.tx - c.x, dy = R.ty - c.y, dz = R.tz - c.z;
+  var d = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+  dx /= d; dy /= d; dz /= d;
+  var see = !W.on && R.r < 30;
+  R.meshes.forEach(function(m){
+    var l = m.userData.loc;
+    if (!vis(l) || !cullIn(m)){ m.visible = false; return; }
+    if (!see || l === S.sel){ m.visible = true; return; }
+    var p = m.position;
+    var vx = p.x - c.x, vy = p.y - c.y, vz = p.z - c.z;
+    var t = vx * dx + vy * dy + vz * dz;
+    if (t < 0 || t > d - .5){ m.visible = true; return; }
+    var lx = vx - t * dx, ly = vy - t * dy, lz = vz - t * dz;
+    var lat = Math.sqrt(lx * lx + ly * ly + lz * lz);
+    m.visible = lat > (.9 + t * .12);
+  });
 }
+
 
 
 
@@ -3636,9 +3653,11 @@ function camUpd(){
   var sp = Math.sin(R.ph);
   R.cam.position.set(R.tx + R.r * sp * Math.sin(R.th), R.ty + R.r * Math.cos(R.ph), R.tz + R.r * sp * Math.cos(R.th));
   R.cam.lookAt(R.tx, R.ty, R.tz);
+  cullAll();
   labelsUpd();
   req();
 }
+
 
 
 function label(txt, w, h, col, font){
