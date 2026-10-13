@@ -1389,9 +1389,9 @@ function startMarquee(){
 }
 
 
-function showArticle(code){
+function showArticle(code, fromScan){
   var recs = DB.artMap.get(code) || [];
-  if (!recs.length){ showNoLoc(code); return; }
+  if (!recs.length){ showNoLoc(code, fromScan); return; }
   var desc = recs[0].descrizione || "";
   var byLoc = new Map();
   recs.forEach(function(r){ byLoc.set(r.ubicazione, true); });
@@ -1409,16 +1409,18 @@ function showArticle(code){
   openResult(html);
 }
 
-function showNoLoc(code){
+function showNoLoc(code, fromScan){
   var desc = EANDESC[code] || "";
+
   var html = '<button class="back" data-act="back">' + ic("chevL") + ' Torna alla lista</button>' +
     '<div class="noloc"><span class="noloc-b">Senza casella</span>' +
     '<h3>' + esc(code) + '</h3>' +
     '<p>' + esc(desc || "Descrizione non disponibile") + '</p>' +
     '<div class="noloc-n">Articolo presente nel database EAN ma non assegnato a nessuna ubicazione.</div></div>';
   openResult(html);
-  flashToast("warn", "Articolo senza casella", desc || "Nessuna ubicazione assegnata", code);
+  if (fromScan) flashToast("warn", "Articolo senza casella", desc || "Nessuna ubicazione assegnata", code);
 }
+
 
 
 
@@ -1546,20 +1548,22 @@ function runSuggest(){
 
 
 
-function pickSuggestion(i){
+function pickSuggestion(i, fromScan){
   var s = sugg[i];
   if (!s) return;
   $("sugg").style.display = "none";
   $("q").blur();
-  if (s.type === "loc") showLocation(s.key); else showArticle(s.key);
+  if (s.type === "loc") showLocation(s.key); else showArticle(s.key, fromScan);
 }
+
 
 $("q").addEventListener("input", runSuggest);
 $("q").addEventListener("keydown", function(e){
   if (e.key === "Enter"){
     e.preventDefault();
-    if (sugg.length) pickSuggestion(0);
+    if (sugg.length) pickSuggestion(0, true);
     else notFound(this);
+
 
 
   }
