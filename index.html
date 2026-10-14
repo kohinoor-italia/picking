@@ -1075,7 +1075,8 @@ body.sim-open .fab{display:none}
 .walk-hint{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:4;display:none;background:rgba(15,23,42,.85);color:#fff;border-radius:12px;padding:8px 14px;font-size:13px;pointer-events:none;white-space:nowrap}
 @media (hover:hover) and (pointer:fine){
   .walk-joy{display:none !important}
-  .sim.walking .walk-hint{display:block}
+  .sim.walking .walk-hint.show{display:block}
+
 }
 .sim[data-v="2d"] .walk-joy,.sim[data-v="2d"] .walk-hint{display:none !important}
 
@@ -1113,7 +1114,8 @@ body.sim-open .fab{display:none}
 
 
 
-.fps{position:absolute;left:10px;top:10px;z-index:8;display:none;background:rgba(15,23,42,.8);color:#4ade80;font:700 12px monospace;padding:4px 8px;border-radius:8px;pointer-events:none}
+.fps{position:absolute;left:6px;top:6px;z-index:8;display:none;background:rgba(15,23,42,.65);color:#4ade80;font:600 10px/1.2 monospace;padding:2px 6px;border-radius:5px;pointer-events:none;white-space:nowrap}
+
 .sim[data-v="3d"] .fps{display:block}
 
 .sim-stage{contain:layout paint}
@@ -3486,6 +3488,11 @@ function walkSet(on){
     W.last = performance.now();
     W.raf = requestAnimationFrame(walkTick);
     tst("WASD per muoverti, Q/E o trascina per girare");
+    var _wh = $("wHint");
+    _wh.classList.add("show");
+    clearTimeout(R.hT);
+    R.hT = setTimeout(function(){ _wh.classList.remove("show"); }, 5000);
+
     R.ren.render(R.scene, R.cam);
   } else {
     if (W.g) W.g.visible = false;
@@ -4200,7 +4207,8 @@ R.ren = new THREE.WebGLRenderer({ antialias:false, alpha:false, stencil:false, p
       var now = performance.now();
       ms += now - a; n++;
       if (now - t0 >= 500){
-el.textContent = Math.round(n * 1000 / (now - t0)) + " fps · " + (ms / n).toFixed(1) + " ms · " + R.ren.info.render.calls + " calls · " + Math.round(R.ren.info.render.triangles / 1000) + "k tri";
+el.textContent = Math.round(n * 1000 / (now - t0)) + "fps " + (ms / n).toFixed(1) + "ms " + R.ren.info.render.calls + "c " + Math.round(R.ren.info.render.triangles / 1000) + "k";
+
         n = 0; ms = 0; t0 = now;
       }
     };
