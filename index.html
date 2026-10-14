@@ -1100,6 +1100,11 @@ body.sim-open .fab{display:none}
 .sim[data-v="2d"] .dbg{display:none !important}
 
 
+.fps{position:absolute;left:10px;top:10px;z-index:8;display:none;background:rgba(15,23,42,.8);color:#4ade80;font:700 12px monospace;padding:4px 8px;border-radius:8px;pointer-events:none}
+.sim[data-v="3d"] .fps{display:block}
+
+
+
 </style>
 
 </head>
@@ -1244,6 +1249,8 @@ body.sim-open .fab{display:none}
 
       </div>
 <div class="sim-tip" id="sTip"></div>
+<div class="fps" id="sFps">-- fps</div>
+
 <div class="dbg" id="dbgM">
   <b>Debug omuleț</b>
   <label>Scală <span id="dbgScV"></span></label>
@@ -3963,6 +3970,24 @@ function init3(){
 
 
   box.appendChild(R.ren.domElement);
+  (function(){
+    var rr = R.ren.render.bind(R.ren), n = 0, ms = 0, t0 = performance.now(), el = $("sFps");
+    R.ren.render = function(s, c){
+      var a = performance.now();
+      if (n === 0 && a - t0 > 1000) t0 = a;
+      rr(s, c);
+      var now = performance.now();
+      ms += now - a; n++;
+      if (now - t0 >= 500){
+        el.textContent = Math.round(n * 1000 / (now - t0)) + " fps · " + (ms / n).toFixed(1) + " ms";
+        n = 0; ms = 0; t0 = now;
+      }
+    };
+    setInterval(function(){
+      if (n === 0 && performance.now() - t0 > 1000) el.textContent = "0 fps (idle)";
+    }, 500);
+  })();
+
   R.scene = new THREE.Scene();
   (function(){
     var N = 700, pos = new Float32Array(N * 3), i, u, v, s, rad = 1000;
@@ -4284,16 +4309,37 @@ function bind3(cv){
     R.tz += (-xa.z * dx + ya.z * dy) * s;
   }
   function dist(a, b){ return Math.hypot(a.x - b.x, a.y - b.y); }
+  var _bx = new THREE.Box3(), _pt = new THREE.Vector3();
+  function fastHit(){
+    var vs = R.vis;
+    if (!vs || !vs.length) return null;
+    var o = ray.ray.origin, d = ray.ray.direction, best = null, bd = 1e9;
+    for (var i = 0; i < vs.length; i++){
+      var p = vs[i].position;
+      var vx = p.x - o.x, vy = p.y - o.y, vz = p.z - o.z;
+      var t = vx * d.x + vy * d.y + vz * d.z;
+      if (t < 0 || t - .7 >= bd) continue;
+      if (vx * vx + vy * vy + vz * vz - t * t > .39) continue;
+      _bx.min.set(p.x - .45, p.y - .24, p.z - .35);
+      _bx.max.set(p.x + .45, p.y + .24, p.z + .35);
+      if (ray.ray.intersectBox(_bx, _pt)){
+        var dist = o.distanceTo(_pt);
+        if (dist < bd){ bd = dist; best = { c: vs[i], pt: _pt.clone() }; }
+      }
+    }
+    return best;
+  }
   function pick(e, hover){
-    if (!R.inst || !R.inst.count) return null;
+    if (!R.vis || !R.vis.length) return null;
     var rc = cv.getBoundingClientRect();
     v2.x = ((e.clientX - rc.left) / rc.width) * 2 - 1;
     v2.y = -((e.clientY - rc.top) / rc.height) * 2 + 1;
+    R.cam.updateMatrixWorld();
     ray.setFromCamera(v2, R.cam);
-    var hit = ray.intersectObject(R.inst, false)[0];
-    var c = hit ? R.vis[hit.instanceId] : null;
-    return c ? c.userData.loc : null;
+    var h = fastHit();
+    return h ? h.c.userData.loc : null;
   }
+
 
   cv.addEventListener("contextmenu", function(e){ e.preventDefault(); });
   cv.addEventListener("pointerleave", function(){ $("sTip").style.display = "none"; });
@@ -4358,10 +4404,9 @@ function bind3(cv){
     R.cam.updateMatrixWorld();
     ray.setFromCamera(v2, R.cam);
     var P = null;
-    if (R.inst && R.inst.count){
-      var h = ray.intersectObject(R.inst, false)[0];
-      if (h) P = h.point.clone();
-    }
+    var h = fastHit();
+    if (h) P = h.pt;
+
     if (!P){
       var pt = new THREE.Vector3();
       var pl = new THREE.Plane(new THREE.Vector3(0, 1, 0), -R.ty);
