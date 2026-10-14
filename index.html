@@ -3055,7 +3055,8 @@ function isEx(loc){ return !!(S.exs && S.exs.has(loc)); }
 /* ---------- PLIMBARE (omulet) ---------- */
 var W = { on:false, x:0, z:0, yaw:0, ph:0, sw:0, keys:{}, jx:0, jy:0, g:null, raf:0, last:0 };
 
-var DBG = { sc:0.04, sp:1.8, rot:0, an:1.35, ru:2, anr:1.35 };
+var DBG = { sc:0.04, sp:1.8, rot:0, an:1.45, ru:2.55, anr:1.2 };
+
 
 
 
@@ -3516,7 +3517,8 @@ function walkSet(on){
     el.addEventListener("change", function(){ el.blur(); });
   });
   $("dbgReset").addEventListener("click", function(){
-DBG.sc = 0.04; DBG.sp = 1.8; DBG.rot = 0; DBG.an = 1.35; DBG.ru = 2; DBG.anr = 1.35;
+DBG.sc = 0.04; DBG.sp = 1.8; DBG.rot = 0; DBG.an = 1.45; DBG.ru = 2.55; DBG.anr = 1.2;
+
 
 
 
@@ -4508,7 +4510,9 @@ var allSeq = as.length > 0 && as.every(function(a){ return S.grid[b][a].seq || S
 }
 
 function goHome(){
+  R.zb = null;
   if (R.keep){
+
     if (W.on){
       walkGeom();
       if (R.pitch && walkBlocked(W.x, W.z)) W.z = Math.round(W.z / R.pitch) * R.pitch;
@@ -4606,6 +4610,8 @@ function bind3(cv){
 
     var pr = P.get(e.pointerId), dx = e.clientX - pr.x, dy = e.clientY - pr.y;
     if (down) down.moved += Math.abs(dx) + Math.abs(dy);
+
+
     if (P.size === 1){
       if (down && (down.btn === 2 || down.btn === 1 || down.sh)) pan(dx, dy);
       else { R.th -= dx * .008; R.ph -= dy * .008; }
@@ -4658,12 +4664,34 @@ function bind3(cv){
     var r0 = R.r;
     var nr = Math.min(Math.max(r0 * f, 3), 500);
     var k = nr / r0;
-    R.r = nr;
-    if (P){
-      R.tx = P.x + (R.tx - P.x) * k;
-      R.ty = P.y + (R.ty - P.y) * k;
-      R.tz = P.z + (R.tz - P.z) * k;
+    if (e.deltaY < 0){
+      if (!R.zb) R.zb = { tx:R.tx, ty:R.ty, tz:R.tz, r:r0, th:R.th, ph:R.ph };
+      R.r = nr;
+      if (P){
+        R.tx = P.x + (R.tx - P.x) * k;
+        R.ty = P.y + (R.ty - P.y) * k;
+        R.tz = P.z + (R.tz - P.z) * k;
+      }
+    } else {
+      R.r = nr;
+      var Z = R.zb;
+      if (Z){
+        if (nr >= Z.r){
+          R.tx = Z.tx; R.ty = Z.ty; R.tz = Z.tz; R.th = Z.th; R.ph = Z.ph; R.zb = null;
+        } else {
+          var q = Math.min(Math.max((nr - r0) / (Z.r - r0), 0), 1);
+          var dth = Z.th - R.th;
+          dth = Math.atan2(Math.sin(dth), Math.cos(dth));
+          R.tx += (Z.tx - R.tx) * q;
+          R.ty += (Z.ty - R.ty) * q;
+          R.tz += (Z.tz - R.tz) * q;
+          R.th += dth * q;
+          R.ph += (Z.ph - R.ph) * q;
+        }
+      }
     }
+
+
     clampCam(); camUpd();
   }, { passive:false });
 
