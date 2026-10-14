@@ -1251,6 +1251,10 @@ var activeLoc = null;
 var sugg = [];
 
 function $(id){ return document.getElementById(id); }
+function pdfWin(){
+  return window.matchMedia("(max-width:899px)").matches ? null : window.open("", "_blank");
+}
+
 
 var IC = {
   ban: '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
@@ -2141,7 +2145,7 @@ function exportPdf(){
     alert("Libreria PDF non caricata. Controlla la connessione e ricarica la pagina.");
     return;
   }
-  var pdfWin = window.open("", "_blank");
+  var pdfWin = pdfWin_();
   setStatus("Creazione PDF...", 50);
   setTimeout(function(){
     try {
@@ -2388,7 +2392,7 @@ document.addEventListener("click", function(e){
       return;
     }
     if (!EXC.length){ alert("Nessuna esclusione da esportare."); return; }
-    var pdfWin = window.open("", "_blank");
+    var pdfWin = pdfWin_();
     setStatus("Creazione PDF...", 50);
     setTimeout(function(){
       try {
@@ -4021,7 +4025,7 @@ $("sPlanPdf").addEventListener("click", function(){
   var rows = planRows();
   if (!rows.length){ tst("Nessuna modifica da stampare"); return; }
   if (!window.jspdf || !window.jspdf.jsPDF){ alert("Libreria PDF non caricata. Controlla la connessione e ricarica la pagina."); return; }
-  var win = window.open("", "_blank");
+  var win = pdfWin_();
   tst("Creazione PDF...");
   setTimeout(function(){
     try {
