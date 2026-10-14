@@ -3118,7 +3118,7 @@ function cullAll(){
   var dx = R.tx - c.x, dy = R.ty - c.y, dz = R.tz - c.z;
   var d = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
   dx /= d; dy /= d; dz /= d;
-  var see = !W.on && R.r < 30;
+  var see = !W.on && R.r < 30 && R.ph > .5;
   R.meshes.forEach(function(m){
     if (!m.vf || !cullIn(m)){ setV(m, false); return; }
     if (!see || m.userData.loc === S.sel){ setV(m, true); return; }
@@ -3126,12 +3126,12 @@ function cullAll(){
     var vx = p.x - c.x, vy = p.y - c.y, vz = p.z - c.z;
     var t = vx * dx + vy * dy + vz * dz;
     if (t < 0 || t > d - .5){ setV(m, true); return; }
-    var lx = vx - t * dx, ly = vy - t * dy, lz = vz - t * dz;
-    var lat = Math.sqrt(lx * lx + ly * ly + lz * lz);
-    setV(m, lat > (.9 + t * .12));
+    var back = (c.z - p.z) * m.userData.sg > .35;
+    setV(m, !back);
   });
   instSync();
 }
+
 
 
 
