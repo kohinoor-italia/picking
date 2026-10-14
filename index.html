@@ -4026,21 +4026,80 @@ $("sPlanPdf").addEventListener("click", function(){
   setTimeout(function(){
     try {
       var doc = new window.jspdf.jsPDF({ unit:"mm", format:"a4" });
+      var nPark = rows.filter(function(r){ return r[5] === "Parcheggio"; }).length;
+      var nArt = planItems().length;
+      var dataOggi = new Date().toLocaleDateString("it-IT");
+
+      /* ---------- PAGINA 1: ordine di spostamento ---------- */
       doc.setFontSize(16); doc.setTextColor(27, 36, 48);
-      doc.text("Piano di spostamento", 14, 15);
+      doc.text("Piano di spostamento (in ordine)", 14, 15);
       doc.setFontSize(9); doc.setTextColor(107, 118, 134);
-      doc.text(rows.length + " movimenti | " + new Date().toLocaleDateString("it-IT"), 14, 21);
+      doc.text(rows.length + " movimenti | " + nArt + " articoli | " + dataOggi, 14, 21);
+
+      var info = "PIANO OTTIMIZZATO. L'ordine dei movimenti e' stato calcolato per ridurre al minimo il numero di spostamenti. " +
+        "Ogni bancale viene spostato solo quando la casella di destinazione e' gia' libera, quindi nessun bancale resta in giro senza motivo. " +
+        "Solo quando i movimenti rimasti si bloccano a vicenda (A al posto di B e B al posto di A) un solo bancale viene appoggiato " +
+        "temporaneamente \"A TERRA\", e viene ripreso subito dopo, appena la sua destinazione si libera. Cosi' a terra c'e' al massimo " +
+        "un bancale alla volta e serve un solo posto libero. " +
+        "Movimenti totali: " + rows.length + " (di cui " + nPark + " parcheggi temporanei). " +
+        "Eseguire i passaggi nell'ordine indicato. Le righe gialle sono parcheggi e riprese.";
+      doc.setFontSize(8.5);
+      var lines = doc.splitTextToSize(info, 174);
+      var boxH = lines.length * 4 + 6;
+      doc.setFillColor(239, 244, 255); doc.setDrawColor(191, 210, 250);
+      doc.roundedRect(14, 25, 182, boxH, 2, 2, "FD");
+      doc.setTextColor(30, 58, 138);
+      doc.text(lines, 18, 31);
+
       doc.autoTable({
-        startY: 26,
-        head: [["N.", "Articolo", "Descrizione", "Da", "A"]],
-        body: rows.map(function(r){ return [r[0], r[1], r[2], r[3], r[4]]; }),
+        startY: 25 + boxH + 4,
+        head: [["N.", "Articolo", "Descrizione", "Da", "A", "Tipo"]],
+        body: rows.map(function(r){ return [r[0], r[1], r[2], r[3], r[4], r[5]]; }),
         theme: "grid",
         styles: { fontSize: 9, cellPadding: 1.8, lineColor: [221, 227, 236], lineWidth: .2, textColor: [27, 36, 48] },
         headStyles: { fillColor: [37, 99, 235], textColor: 255 },
-        columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 32 }, 3: { cellWidth: 28, fontStyle: "bold" }, 4: { cellWidth: 28, fontStyle: "bold" } },
+        columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 30 }, 3: { cellWidth: 26, fontStyle: "bold" }, 4: { cellWidth: 26, fontStyle: "bold" }, 5: { cellWidth: 22 } },
         didParseCell: function(d){
           if (d.section === "body" && rows[d.row.index] && rows[d.row.index][5] !== "Sposta"){
             d.cell.styles.fillColor = [254, 243, 199];
+          }
+        },
+        margin: { left: 14, right: 14, bottom: 14 }
+      });
+
+      /* ---------- PAGINA 2: cambio ubicazione (per l'ufficio) ---------- */
+      var hasLoc = {};
+      S.items.forEach(function(it){ if (it.cur) hasLoc[it.art] = 1; });
+      var ch = planItems().map(function(it){
+        var senza = !it.cur && !hasLoc[it.art];
+        return {
+          art: it.art, desc: it.desc || "", from: it.orig || "NUOVO",
+          to: it.cur || "SENZA UBICAZIONE", senza: senza,
+          note: senza ? "ATTENZIONE: articolo senza ubicazione, assegnarne una"
+              : (!it.cur ? "Tolto da questa ubicazione, resta in altra" : (!it.orig ? "Nuovo inserimento" : "Cambio ubicazione"))
+        };
+      }).sort(function(a, b){ return natCmp(a.art, b.art) || natCmp(a.from, b.from); });
+      var nSenza = ch.filter(function(c){ return c.senza; }).length;
+
+      doc.addPage();
+      doc.setFontSize(16); doc.setTextColor(27, 36, 48);
+      doc.text("Cambio ubicazione (per ufficio)", 14, 15);
+      doc.setFontSize(9); doc.setTextColor(107, 118, 134);
+      doc.text("Da aggiornare nel gestionale. L'ordine non e' importante. Elenco per articolo.", 14, 21);
+      doc.text(ch.length + " variazioni | " + nSenza + " articoli senza ubicazione | " + dataOggi, 14, 26);
+
+      doc.autoTable({
+        startY: 30,
+        head: [["Articolo", "Descrizione", "Ubicazione attuale", "Nuova ubicazione", "Nota"]],
+        body: ch.map(function(c){ return [c.art, c.desc, c.from, c.to, c.note]; }),
+        theme: "grid",
+        styles: { fontSize: 8.5, cellPadding: 1.8, lineColor: [221, 227, 236], lineWidth: .2, textColor: [27, 36, 48] },
+        headStyles: { fillColor: [15, 23, 42], textColor: 255 },
+        columnStyles: { 0: { cellWidth: 28 }, 2: { cellWidth: 28, fontStyle: "bold" }, 3: { cellWidth: 30, fontStyle: "bold" }, 4: { cellWidth: 38 } },
+        didParseCell: function(d){
+          if (d.section === "body" && ch[d.row.index] && ch[d.row.index].senza){
+            d.cell.styles.fillColor = [254, 226, 226];
+            d.cell.styles.textColor = [153, 27, 27];
           }
         },
         margin: { left: 14, right: 14, bottom: 14 }
@@ -4059,6 +4118,7 @@ $("sPlanPdf").addEventListener("click", function(){
     }
   }, 50);
 });
+
 
 
 function fsEl(){ return document.fullscreenElement || document.webkitFullscreenElement; }
@@ -4090,6 +4150,8 @@ function openSim(){
     arr.forEach(function(r){ S.items.push({ id:S.nid++, art:r.articolo, desc:r.descrizione || "", orig:loc, cur:loc }); });
   });
   loadSaved();
+  try { S.flip = localStorage.getItem("sim_flip_v1") === "1"; } catch(e){}
+  $("sFlip").classList.toggle("on", !!S.flip);
   S.undo = []; S.sel = null; S.pend = null;
   buildGrid(); reindex();
   if (S.blocks.indexOf(S.f.b) < 0){
@@ -4164,11 +4226,13 @@ $("sTop").addEventListener("click", function(){ R.ph = .05; R.th = 0; camUpd(); 
 $("sFlip").addEventListener("click", function(){
   S.flip = !S.flip;
   $("sFlip").classList.toggle("on", S.flip);
+  try { localStorage.setItem("sim_flip_v1", S.flip ? "1" : "0"); } catch(e){}
   R.keep = true;
   rebuildView();
   R.keep = false;
   tst(S.flip ? "Lati invertiti: pari e dispari scambiati" : "Lati in posizione normale");
 });
+
 
 
 
