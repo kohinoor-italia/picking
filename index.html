@@ -3229,7 +3229,7 @@ useA(b, a);
     (sq ? [1] : [1, 0]).forEach(function(odd){
       if (!sq && S.f.side === "odd" && !odd) return;
       if (!sq && S.f.side === "even" && odd) return;
-      var sg = (!!odd !== !!S.flip) ? -1 : 1, zf = z0 + sg * GAP / 2, zb = z0 + sg * (GAP / 2 + D);
+      var sg = (sq || (!!odd !== !!S.flip)) ? -1 : 1, zf = z0 + sg * GAP / 2, zb = z0 + sg * (GAP / 2 + D);
 
 
 
@@ -4390,7 +4390,7 @@ if (false){
     (sq ? [1] : [1, 0]).forEach(function(odd){
       if (!sq && S.f.side === "odd" && !odd) return;
       if (!sq && S.f.side === "even" && odd) return;
-      var sg = (!!odd !== !!S.flip) ? -1 : 1, zf = z0 + sg * GAP / 2, zc = z0 + sg * (GAP / 2 + D / 2), zb = z0 + sg * (GAP / 2 + D);
+      var sg = (sq || (!!odd !== !!S.flip)) ? -1 : 1, zf = z0 + sg * GAP / 2, zc = z0 + sg * (GAP / 2 + D / 2), zb = z0 + sg * (GAP / 2 + D);
 
 
 var j, k;
