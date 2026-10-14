@@ -1251,9 +1251,28 @@ var activeLoc = null;
 var sugg = [];
 
 function $(id){ return document.getElementById(id); }
-function pdfWin(){
+function pdfWin_(){
   return window.matchMedia("(max-width:899px)").matches ? null : window.open("", "_blank");
 }
+function pdfOut(doc, win, name){
+  var phone = window.matchMedia("(max-width:899px)").matches;
+  var blob = doc.output("blob");
+  if (!phone){
+    var u = URL.createObjectURL(blob);
+    if (win) win.location.href = u; else window.open(u, "_blank");
+    return;
+  }
+  var file = null;
+  try { file = new File([blob], name, { type:"application/pdf" }); } catch(e){}
+  if (file && navigator.canShare && navigator.canShare({ files:[file] })){
+    navigator.share({ files:[file], title:name }).catch(function(err){
+      if (!err || err.name !== "AbortError") doc.save(name);
+    });
+    return;
+  }
+  doc.save(name);
+}
+
 
 
 var IC = {
@@ -2205,8 +2224,8 @@ function exportPdf(){
         doc.text(p + " / " + pages, 196, 290, { align: "right" });
       }
 
-      var url = doc.output("bloburl");
-      if (pdfWin) pdfWin.location.href = url; else window.location.href = url;
+      pdfOut(doc, pdfWin, "ubicazioni.pdf");
+
       setStatus("PDF creato.", 100);
       setTimeout(function(){ setStatus("", 0); }, 1500);
     } catch (e){
@@ -2463,8 +2482,8 @@ document.addEventListener("click", function(e){
           doc.text(p + " / " + pages, 196, 290, { align: "right" });
         }
 
-        var url = doc.output("bloburl");
-        if (pdfWin) pdfWin.location.href = url; else window.location.href = url;
+        pdfOut(doc, pdfWin, "ubicazioni_escluse.pdf");
+
         setStatus("PDF creato.", 100);
         setTimeout(function(){ setStatus("", 0); }, 1500);
       } catch (e){
@@ -4114,8 +4133,8 @@ $("sPlanPdf").addEventListener("click", function(){
         doc.setPage(p); doc.setFontSize(8); doc.setTextColor(107, 118, 134);
         doc.text(p + " / " + pages, 196, 290, { align:"right" });
       }
-      var url = doc.output("bloburl");
-      if (win) win.location.href = url; else window.location.href = url;
+      pdfOut(doc, win, "piano_spostamento.pdf");
+
     } catch(e){
       if (win) win.close();
       alert("Errore PDF: " + (e.message || e));
