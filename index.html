@@ -2918,10 +2918,38 @@ function walkBlk(){
   x.font = "bold 38px Arial";
   x.lineWidth = 6; x.strokeStyle = "rgba(15,23,42,.9)"; x.strokeText(t, 128, 34);
   x.fillStyle = "#fff"; x.fillText(t, 128, 34);
-  W.bt.needsUpdate = true;
+W.bt.needsUpdate = true;
+  W.ptxt = null;
   req();
 }
 
+
+function walkPos(){
+  var c = W.pc;
+  if (!c || !R.pitch) return;
+  var b = S.f.b, as = scopeAisles(), t = "";
+  var ai = Math.round(W.z / R.pitch);
+  if (S.grid[b] && ai >= 0 && ai < as.length){
+    var a = as[ai], A = S.grid[b][a], k = Math.round(W.x);
+    var sq = A.seq || S.f.side === "seq";
+    var k0 = sq ? A.smin : A.min, k1 = sq ? A.smax : A.max;
+    if (k >= k0 && k <= k1){
+      t = (a === "-" ? b : b + "." + a) + " \u00b7 " + (sq ? String(k + 1) : (2 * k + 1) + "-" + (2 * k + 2));
+    }
+  }
+  if (t === W.ptxt) return;
+  W.ptxt = t;
+  var x = c.getContext("2d"), fs = 38;
+  x.clearRect(0, 0, 256, 64);
+  if (t){
+    x.textAlign = "center"; x.textBaseline = "middle"; x.lineJoin = "round";
+    x.font = "bold " + fs + "px Arial";
+    while (x.measureText(t).width > 240 && fs > 14){ fs -= 2; x.font = "bold " + fs + "px Arial"; }
+    x.lineWidth = 6; x.strokeStyle = "rgba(15,23,42,.9)"; x.strokeText(t, 128, 34);
+    x.fillStyle = "#fff"; x.fillText(t, 128, 34);
+  }
+  W.pt.needsUpdate = true;
+}
 
 function walkMake(){
   if (W.g) return;
@@ -2973,7 +3001,20 @@ function walkMake(){
     );
     bm.position.set(0, .54, -.0875);
     bm.rotation.y = Math.PI;
-    g.add(bm);
+g.add(bm);
+  })();
+  (function(){
+    var c = document.createElement("canvas"); c.width = 256; c.height = 64;
+    W.pc = c; W.ptxt = null;
+    W.pt = new THREE.CanvasTexture(c);
+    var pm = new THREE.Mesh(
+      new THREE.PlaneGeometry(.25, .0625),
+      new THREE.MeshBasicMaterial({ map: W.pt, transparent: true, depthWrite: false })
+    );
+    pm.position.set(0, .45, -.0875);
+    pm.rotation.y = Math.PI;
+    g.add(pm);
+
   })();
 
 
@@ -3127,7 +3168,9 @@ function walkCam(){
   R.cam.position.set(W.x + R.r * sp * Math.sin(R.th), ty + R.r * Math.cos(R.ph), W.z + R.r * sp * Math.cos(R.th));
   R.cam.lookAt(W.x, ty, W.z);
   var now = performance.now();
-  if (now - (R.wcT || 0) > 90){ R.wcT = now; walkClear(); }
+if (now - (R.wcT || 0) > 90){ R.wcT = now; walkClear(); }
+  walkPos();
+
   labelsUpd();
 }
 
@@ -3746,10 +3789,13 @@ function labelsUpd(){
     return R.labMat[t] || (R.labMat[t] = new THREE.MeshBasicMaterial({ map: labTex(t), transparent: true, side: THREE.FrontSide, depthWrite: false }));
   }
   var cp = R.cam.position, md2 = 12 * 12;
-  var nd2 = 25 * 25;
+var nd2 = 25 * 25;
+  var hideBig = W.on && S.f.a !== "all";
+  (R.bigB || []).forEach(function(s){ s.visible = !hideBig; });
+
   (R.near || []).forEach(function(s){
     var ex = s.position.x - cp.x, ey = s.position.y - cp.y, ez = s.position.z - cp.z;
-    s.visible = (ex * ex + ey * ey + ez * ez) < nd2;
+    s.visible = (ex * ex + ey * ey + ez * ez) < nd2 && !(s.userData.big && hideBig);
   });
 
   R.meshes.forEach(function(m){
@@ -3843,7 +3889,7 @@ function clearScene(){
     else if (o.isSprite){ o.material.map.dispose(); o.material.dispose(); }
     else { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }
   }
-  R.meshes = []; R.byLoc = {}; R.vis = []; R.inst = null; R.near = [];
+  R.meshes = []; R.byLoc = {}; R.vis = []; R.inst = null; R.near = []; R.bigB = [];
 
 }
 
@@ -3861,11 +3907,11 @@ function build3(){
     var x0 = k0 * CW - CW / 2, x1 = k1 * CW + CW / 2;
     bx0 = Math.min(bx0, x0); bx1 = Math.max(bx1, x1); maxH = Math.max(maxH, H);
     var nmB = label(b, 3.4, 1.7, "#1d4ed8", "bold 84px Arial");
-    nmB.position.set(x0 - 2.4, H / 2 + (a === "-" ? 0 : .8), z0); R.scene.add(nmB);
+    nmB.position.set(x0 - 2.4, H / 2 + (a === "-" ? 0 : .8), z0); R.scene.add(nmB); R.bigB.push(nmB);
     if (a !== "-"){
       var nmA = label(a, 2.4, 1.2, "#1d4ed8", "bold 84px Arial");
       nmA.position.set(x0 - 2.4, H / 2 - .5, z0); R.scene.add(nmA);
-      R.near.push(nmA);
+      nmA.userData.big = true; R.near.push(nmA);
     }
 
     (sq ? [1] : [1, 0]).forEach(function(odd){
