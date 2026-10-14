@@ -3509,7 +3509,8 @@ DBG.sc = 0.04; DBG.sp = 1.8; DBG.rot = 0; DBG.an = 1.35; DBG.ru = 2;
 
 
 
-$("sWalk").addEventListener("click", function(){ walkSet(!W.on); });
+$("sWalk").addEventListener("click", function(){ S.noWalk = W.on; walkSet(!W.on); });
+
 
 /* ---------- MOUSE LOOK (stil Minecraft) + ecran complet ---------- */
 function lockEl(){ return document.pointerLockElement || document.webkitPointerLockElement; }
@@ -3949,7 +3950,8 @@ useA(b, a);
     var hs = '<section class="s2a"><h4>' + esc(b) + '</h4><div class="s2s"><div class="s2sl">Senza lati</div>' +
       '<div class="s2g" style="grid-template-columns:repeat(' + nc + ',var(--cw))">';
     for (var q = A.min; q <= A.max; q++){
-      var lc = A.cells[(q + 1) + "|-"];
+var lc = A.cells[(rk(q, A.min, A.max) + 1) + "|-"];
+
       hs += lc ? cellHtml(lc, true) : '<div class="c nil"></div>';
     }
     return hs + "</div></div></section>";
@@ -3962,18 +3964,20 @@ useA(b, a);
   lv.reverse();
   var ncol = k1 - k0 + 1;
   var h = '<section class="s2a"><h4>' + esc(b + "." + a) + "</h4>";
-  (sq ? [1] : [1, 0]).forEach(function(odd){
+(sq ? [1] : (S.flip ? [0, 1] : [1, 0])).forEach(function(odd){
     if (!sq && S.f.side === "odd" && !odd) return;
     if (!sq && S.f.side === "even" && odd) return;
     h += '<div class="s2s"><div class="s2sl">' + (sq ? "Senza lati" : (odd ? "Lato dispari" : "Lato pari")) + '</div>' +
          '<div class="s2g" style="grid-template-columns:34px repeat(' + ncol + ',var(--cw))"><div class="hc"></div>';
     var k, n;
-    for (k = k0; k <= k1; k++) h += '<div class="hc">' + (sq ? k + 1 : 2 * k + (odd ? 1 : 2)) + "</div>";
+for (k = k0; k <= k1; k++) h += '<div class="hc">' + (sq ? rk(k, k0, k1) + 1 : 2 * rk(k, k0, k1) + (odd ? 1 : 2)) + "</div>";
+
     lv.forEach(function(l){
       h += '<div class="lc">' + esc(l) + "</div>";
       for (k = k0; k <= k1; k++){
-        n = sq ? k + 1 : 2 * k + (odd ? 1 : 2);
+n = sq ? rk(k, k0, k1) + 1 : 2 * rk(k, k0, k1) + (odd ? 1 : 2);
         var loc = A.cells[n + "|" + l];
+
         h += loc ? cellHtml(loc, false) : '<div class="c nil"></div>';
       }
     });
@@ -4645,7 +4649,12 @@ function teleTo(loc){
 }
 function rebuildView(tele){
   if (S.view === "2d") r2();
-  else ensureThree(function(){ if (!R.ren) init3(); sizeRen(); build3(); if (tele) teleTo(tele); });
+  else ensureThree(function(){
+    if (!R.ren) init3(); sizeRen(); build3();
+    if (tele && R.byLoc[tele]) teleTo(tele);
+    else if (!W.on && !S.noWalk && S.view === "3d" && S.f.b !== "Altre" && S.grid[S.f.b]) walkSet(true);
+  });
+
 }
 function setView(v){
   S.view = v;
