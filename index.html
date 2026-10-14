@@ -1091,6 +1091,13 @@ body.sim-open .fab{display:none}
 
 .sim.walking #sGrid{display:none}
 
+.dbg{position:absolute;right:60px;top:10px;z-index:8;width:240px;display:none;background:#0f172a;color:#fff;border-radius:14px;padding:12px;box-shadow:0 8px 24px rgba(15,23,42,.4);font-size:13px}
+.dbg.on{display:block}
+.dbg b{display:block;margin-bottom:4px;font-size:14px}
+.dbg label{display:flex;justify-content:space-between;margin-top:8px;font-weight:700}
+.dbg input[type=range]{width:100%}
+.dbg button{margin-top:10px;width:100%;height:34px;border:0;border-radius:9px;background:#334155;color:#fff;font-weight:700}
+.sim[data-v="2d"] .dbg{display:none !important}
 
 
 </style>
@@ -1229,12 +1236,32 @@ body.sim-open .fab{display:none}
         <button class="z3" id="sWalk" aria-label="Cammina">🚶</button>
         <button class="z3" id="sFlip" aria-label="Inverti pari/dispari">⇅</button>
         <button class="z3" id="sGrid" aria-label="Griglia scaffali">▦</button>
-        <button class="z3" id="sLook" aria-label="Schermo intero + mouse look">⛶</button>
+<button class="z3" id="sLook" aria-label="Schermo intero + mouse look">⛶</button>
+<button class="z3" id="sDbg" aria-label="Debug">⚙</button>
+
 
 
 
       </div>
 <div class="sim-tip" id="sTip"></div>
+<div class="dbg" id="dbgM">
+  <b>Debug omuleț</b>
+  <label>Scală <span id="dbgScV"></span></label>
+  <input type="range" id="dbgSc" min="0.01" max="5" step="0.01">
+  <label>Viteză mers <span id="dbgSpV"></span></label>
+  <input type="range" id="dbgSp" min="0.2" max="15" step="0.1">
+  <label>Viteză animație <span id="dbgAnV"></span></label>
+  <input type="range" id="dbgAn" min="0.05" max="3" step="0.05">
+  <label>Multiplicator alergare <span id="dbgRuV"></span></label>
+  <input type="range" id="dbgRu" min="1" max="3" step="0.05">
+  <label>Rotație model <span id="dbgRoV"></span></label>
+  <input type="range" id="dbgRo" min="0" max="360" step="15">
+  <button id="dbgCopy">Copiază valori</button>
+  <button id="dbgReset">Reset valori</button>
+  <div id="dbgOut" style="margin-top:8px;font-family:monospace;font-size:12px;word-break:break-all;user-select:all"></div>
+</div>
+
+
       <div class="walk-joy" id="wJoy"><i id="wKnob"></i></div>
       <div class="walk-hint" id="wHint">WASD = muovi · Space/Shift = corri · Q/E o trascina = gira</div>
 
@@ -2986,6 +3013,60 @@ function isEx(loc){ return !!(S.exs && S.exs.has(loc)); }
 /* ---------- PLIMBARE (omulet) ---------- */
 var W = { on:false, x:0, z:0, yaw:0, ph:0, sw:0, keys:{}, jx:0, jy:0, g:null, raf:0, last:0 };
 
+var DBG = { sc:0.04, sp:1.8, rot:0, an:1.35, ru:1.15 };
+
+
+try {
+  var _d = JSON.parse(localStorage.getItem("sim_dbg_v1") || "null");
+  if (_d){
+    if (_d.sc > 0) DBG.sc = +_d.sc;
+    if (_d.sp > 0) DBG.sp = +_d.sp;
+    if (_d.rot != null) DBG.rot = +_d.rot;
+    if (_d.an > 0) DBG.an = +_d.an;
+    if (_d.ru > 0) DBG.ru = +_d.ru;
+
+  }
+} catch(e){}
+
+function dbgApply(){
+  if (W.mdl){
+    W.mdl.scale.setScalar(DBG.sc);
+    W.mdl.rotation.y = DBG.rot * Math.PI / 180;
+  }
+  if (W.lab) W.lab.position.y = (W.mh || 10) * DBG.sc + .12;
+  req();
+}
+
+function glbLoad(){
+  function go(){
+    new THREE.GLTFLoader().load("cj_model.glb", function(gltf){
+      var m = gltf.scene, bx = new THREE.Box3().setFromObject(m), c = new THREE.Vector3();
+      bx.getCenter(c);
+      m.position.set(-c.x, -bx.min.y, -c.z);      // picioarele pe podea, centrat
+      W.mh = bx.max.y - bx.min.y;
+      m.traverse(function(o){ if (o.isMesh) o.frustumCulled = false; });
+      W.mdl.add(m);
+      if (gltf.animations && gltf.animations.length){
+        W.mixer = new THREE.AnimationMixer(m);
+        W.act = W.mixer.clipAction(gltf.animations[0]);
+        W.act.play();
+        W.act.paused = true;
+      }
+      dbgApply();
+    }, undefined, function(err){
+      console.error("Eroare cj_model.glb:", err);
+      tst("Errore caricamento cj_model.glb");
+    });
+  }
+  if (THREE.GLTFLoader) return go();
+  var s = document.createElement("script");
+  s.src = "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js";
+  s.onload = go;
+  s.onerror = function(){ tst("GLTFLoader non disponibile"); };
+  document.head.appendChild(s);
+}
+
+
 function walkBlk(){
   var c = W.bc;
   if (!c) return;
@@ -3040,82 +3121,42 @@ function walkMake(){
   if (W.g) return;
   var g = new THREE.Group();
   g.userData.keep = true;
-  function mt(c){ return new THREE.MeshLambertMaterial({ color:c }); }
-  function bx(w, h, d, c, x, y, z, par){
-    var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mt(c));
-    m.position.set(x, y, z); par.add(m); return m;
-  }
-  W.legL = new THREE.Group(); W.legL.position.set(-.07, .4, 0);
-  W.legR = new THREE.Group(); W.legR.position.set(.07, .4, 0);
-  [W.legL, W.legR].forEach(function(l){
-    bx(.11, .4, .13, 0x1e293b, 0, -.2, 0, l);
-    bx(.12, .06, .18, 0x0f172a, 0, -.37, .03, l);
-    g.add(l);
-  });
-  W.armL = new THREE.Group(); W.armL.position.set(-.19, .74, 0);
-  W.armR = new THREE.Group(); W.armR.position.set(.19, .74, 0);
-  [W.armL, W.armR].forEach(function(a){
-    bx(.08, .3, .09, 0xf97316, 0, -.14, 0, a);
-    bx(.07, .07, .08, 0xfcd9b6, 0, -.31, 0, a);
-    g.add(a);
-  });
-  bx(.28, .36, .17, 0xf97316, 0, .58, 0, g);
-  (function(){
-    var c = document.createElement("canvas"); c.width = 256; c.height = 64;
-    var x = c.getContext("2d");
-    x.textAlign = "center"; x.textBaseline = "middle"; x.lineJoin = "round";
-    x.font = "bold 40px Arial";
-    x.lineWidth = 6; x.strokeStyle = "rgba(15,23,42,.9)"; x.strokeText("Nunzio", 128, 34);
-    x.fillStyle = "#fff"; x.fillText("Nunzio", 128, 34);
+  W.mdl = new THREE.Group(); g.add(W.mdl);
+  W.lab = new THREE.Group(); g.add(W.lab);
+
+  function cv(){ var c = document.createElement("canvas"); c.width = 256; c.height = 64; return c; }
+  function plane(c, y){
     var tx = new THREE.CanvasTexture(c);
-    var nm = new THREE.Mesh(
-      new THREE.PlaneGeometry(.25, .0625),
+    var m = new THREE.Mesh(
+      new THREE.PlaneGeometry(.31, .078),
       new THREE.MeshBasicMaterial({ map: tx, transparent: true, depthWrite: false })
     );
-    nm.position.set(0, .64, -.0875);
-    nm.rotation.y = Math.PI;
-    g.add(nm);
-  })();
-  (function(){
-    var c = document.createElement("canvas"); c.width = 256; c.height = 64;
-    W.bc = c;
-    W.bt = new THREE.CanvasTexture(c);
-    var bm = new THREE.Mesh(
-      new THREE.PlaneGeometry(.25, .0625),
-      new THREE.MeshBasicMaterial({ map: W.bt, transparent: true, depthWrite: false })
-    );
-    bm.position.set(0, .54, -.0875);
-    bm.rotation.y = Math.PI;
-g.add(bm);
-  })();
-  (function(){
-    var c = document.createElement("canvas"); c.width = 256; c.height = 64;
-    W.pc = c; W.ptxt = null;
-    W.pt = new THREE.CanvasTexture(c);
-    var pm = new THREE.Mesh(
-      new THREE.PlaneGeometry(.25, .0625),
-      new THREE.MeshBasicMaterial({ map: W.pt, transparent: true, depthWrite: false })
-    );
-    pm.position.set(0, .45, -.0875);
-    pm.rotation.y = Math.PI;
-    g.add(pm);
+    m.position.set(0, y, 0);
+    m.rotation.y = Math.PI;
+    W.lab.add(m);
+    return tx;
+  }
 
-  })();
+  var c1 = cv(), x = c1.getContext("2d");
+  x.textAlign = "center"; x.textBaseline = "middle"; x.lineJoin = "round";
+  x.font = "bold 40px Arial";
+  x.lineWidth = 6; x.strokeStyle = "rgba(15,23,42,.9)"; x.strokeText("Nunzio", 128, 34);
+  x.fillStyle = "#fff"; x.fillText("Nunzio", 128, 34);
+  plane(c1, .18);
 
+  W.bc = cv(); W.bt = plane(W.bc, .09);
+  W.pc = cv(); W.ptxt = null; W.pt = plane(W.pc, 0);
 
-  var hd = new THREE.Mesh(new THREE.SphereGeometry(.1, 16, 12), mt(0xfcd9b6));
-  hd.position.set(0, .87, 0); g.add(hd);
-  var hh = new THREE.Mesh(new THREE.SphereGeometry(.112, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), mt(0xfacc15));
-  hh.position.set(0, .89, 0); g.add(hh);
-  bx(.025, .025, .02, 0x0f172a, -.04, .875, .095, g);
-  bx(.025, .025, .02, 0x0f172a, .04, .875, .095, g);
   var sh = new THREE.CircleGeometry(.22, 16); sh.rotateX(-Math.PI / 2);
   var shm = new THREE.Mesh(sh, new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:.25 }));
   shm.position.y = .01; g.add(shm);
-  g.scale.setScalar(1.25);
+
   R.scene.add(g);
   W.g = g;
+  dbgApply();
+  glbLoad();
 }
+
 
 function walkGeom(){
   var b = S.f.b;
@@ -3277,7 +3318,11 @@ function walkTick(t){
   if (moving){
     var sn = Math.sin(R.th), cs = Math.cos(R.th);
     var dx = -sn * iz + cs * ix, dz = -cs * iz - sn * ix;
-    var sp = (K.Space || K.ShiftLeft || K.ShiftRight) ? 7 : 4;
+    var run = K.Space || K.ShiftLeft || K.ShiftRight;
+    var sp = run ? DBG.sp * DBG.ru : DBG.sp;
+    if (W.act){ W.act.paused = false; W.act.timeScale = DBG.an * (run ? DBG.ru : 1); }
+
+
 
     var step = sp * L * dt;
     var nx = W.x + dx * step, nz = W.z + dz * step;
@@ -3299,10 +3344,9 @@ function walkTick(t){
   if (!moving && W.sw < .01) W.sw = 0;
   if (W.sw !== prev) dirty = true;
   if (!dirty) return;
-  var a = Math.sin(W.ph) * .9 * W.sw;
-  W.legL.rotation.x = a; W.legR.rotation.x = -a;
-  W.armL.rotation.x = -a; W.armR.rotation.x = a;
-  W.g.position.set(W.x, Math.abs(Math.sin(W.ph)) * .03 * W.sw, W.z);
+  if (W.act){ if (!moving) W.act.paused = true; else W.mixer.update(dt); }
+  W.g.position.set(W.x, 0, W.z);
+
   W.g.rotation.y = W.yaw;
   walkCam();
   R.ren.render(R.scene, R.cam);
@@ -3334,6 +3378,53 @@ function walkSet(on){
     goHome();
   }
 }
+
+(function(){
+  var sc = $("dbgSc"), sp = $("dbgSp"), ro = $("dbgRo"), an = $("dbgAn"), ru = $("dbgRu");
+  function show(){
+    $("dbgScV").textContent = DBG.sc.toFixed(2) + "x";
+    $("dbgSpV").textContent = DBG.sp;
+    $("dbgAnV").textContent = DBG.an.toFixed(2) + "x";
+    $("dbgRuV").textContent = DBG.ru.toFixed(2) + "x";
+    $("dbgRoV").textContent = DBG.rot + "°";
+  }
+  function sync(){
+    sc.value = DBG.sc; sp.value = DBG.sp; an.value = DBG.an; ru.value = DBG.ru; ro.value = DBG.rot;
+    show();
+  }
+  function store(){ try { localStorage.setItem("sim_dbg_v1", JSON.stringify(DBG)); } catch(e){} }
+  function onIn(){
+    DBG.sc = parseFloat(sc.value);
+    DBG.sp = parseFloat(sp.value);
+    DBG.an = parseFloat(an.value);
+    DBG.ru = parseFloat(ru.value);
+    DBG.rot = parseFloat(ro.value);
+    show(); store(); dbgApply();
+  }
+  [sc, sp, an, ru, ro].forEach(function(el){
+    el.addEventListener("input", onIn);
+    el.addEventListener("change", function(){ el.blur(); });
+  });
+  $("dbgReset").addEventListener("click", function(){
+    DBG.sc = 0.04; DBG.sp = 1.8; DBG.rot = 0; DBG.an = 1.35; DBG.ru = 1.15;
+
+    sync(); store(); dbgApply(); $("dbgOut").textContent = "";
+  });
+  $("dbgCopy").addEventListener("click", function(){
+    var t = "scala=" + DBG.sc + " viteza=" + DBG.sp + " animatie=" + DBG.an +
+            " alergare=" + DBG.ru + " rotatie=" + DBG.rot;
+    $("dbgOut").textContent = t;
+    try { navigator.clipboard.writeText(t); } catch(e){}
+  });
+  $("sDbg").addEventListener("click", function(){
+    $("dbgM").classList.toggle("on");
+    this.classList.toggle("on", $("dbgM").classList.contains("on"));
+  });
+  sync();
+})();
+
+
+
 $("sWalk").addEventListener("click", function(){ walkSet(!W.on); });
 
 /* ---------- MOUSE LOOK (stil Minecraft) + ecran complet ---------- */
