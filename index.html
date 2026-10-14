@@ -1229,6 +1229,8 @@ body.sim-open .fab{display:none}
         <button class="z3" id="sWalk" aria-label="Cammina">🚶</button>
         <button class="z3" id="sFlip" aria-label="Inverti pari/dispari">⇅</button>
         <button class="z3" id="sGrid" aria-label="Griglia scaffali">▦</button>
+        <button class="z3" id="sLook" aria-label="Schermo intero + mouse look">⛶</button>
+
 
 
       </div>
@@ -3009,7 +3011,15 @@ function walkPos(){
     var sq = A.seq || S.f.side === "seq";
     var k0 = sq ? A.smin : A.min, k1 = sq ? A.smax : A.max;
     if (k >= k0 && k <= k1){
-      t = (a === "-" ? b : b + "." + a) + " \u00b7 " + (sq ? String(k + 1) : (2 * k + 1) + "-" + (2 * k + 2));
+      var pp = function(n){ return n < 10 ? "0" + n : String(n); };
+      if (sq){
+        t = (a === "-" ? b : b + "." + a) + "." + pp(k + 1);
+      } else {
+        var o1 = 2 * k + 1, e1 = 2 * k + 2;
+        var ns = S.f.side === "odd" ? pp(o1) : (S.f.side === "even" ? pp(e1) : pp(o1) + "-" + pp(e1));
+        t = b + "." + a + "." + ns;
+      }
+
     }
   }
   if (t === W.ptxt) return;
@@ -3325,6 +3335,46 @@ function walkSet(on){
   }
 }
 $("sWalk").addEventListener("click", function(){ walkSet(!W.on); });
+
+/* ---------- MOUSE LOOK (stil Minecraft) + ecran complet ---------- */
+function lockEl(){ return document.pointerLockElement || document.webkitPointerLockElement; }
+function lookOn(){
+  var cv = $("s3d").querySelector("canvas");
+  return !!cv && lockEl() === cv;
+}
+$("sLook").addEventListener("click", function(){
+  var cv = $("s3d").querySelector("canvas");
+  if (!cv || !cv.requestPointerLock){ tst("Mouse look non supportato su questo dispositivo"); return; }
+  S.look = true;
+  if (!fsEl()) fsToggle();
+  if (!W.on) walkSet(true);
+  cv.requestPointerLock();
+});
+/* dacă ai ieșit din mouse look cu Esc dar ești încă în fullscreen: click pe scenă îl reactivează */
+$("s3d").addEventListener("click", function(){
+  if (S.look && fsEl() && !lookOn()){
+    var cv = $("s3d").querySelector("canvas");
+    if (cv && cv.requestPointerLock) cv.requestPointerLock();
+  }
+});
+document.addEventListener("fullscreenchange", function(){ if (!fsEl()) S.look = false; });
+document.addEventListener("pointerlockchange", function(){
+  var on = lookOn();
+  $("sLook").classList.toggle("on", on);
+  if (on) tst("Muovi il mouse per girare · Esc per uscire");
+});
+/* cât timp mouse-ul e blocat, ignoră logica de drag */
+["pointerdown", "pointermove", "pointerup"].forEach(function(t){
+  $("s3d").addEventListener(t, function(e){ if (lookOn()) e.stopPropagation(); }, true);
+});
+document.addEventListener("mousemove", function(e){
+  if (!lookOn()) return;
+  R.th -= e.movementX * .0025;
+  R.ph -= e.movementY * .0025;
+  R.ph = Math.min(Math.max(R.ph, W.on ? .25 : .05), W.on ? 1.45 : 1.5);
+  camUpd();
+});
+
 
 window.addEventListener("keydown", function(e){
   if (!W.on || !S.on || S.view !== "3d") return;
