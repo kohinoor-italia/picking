@@ -978,7 +978,8 @@ body.sim-open .fab{display:none}
 .sim[data-v="2d"] .z3{display:none}
 .sim-zoom{position:absolute;right:10px;top:10px;z-index:4;display:flex;flex-direction:column;gap:6px}
 .sim-zoom button{width:40px;height:40px;border-radius:12px;border:1px solid #dbe3ee;background:#fff;color:#1d4ed8;font-size:20px;font-weight:800;box-shadow:0 2px 8px rgba(15,23,42,.15)}
-.sim-pend{position:absolute;left:10px;right:60px;top:10px;z-index:6;display:none;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 10px;border-radius:14px;background:#0f172a;color:#fff;box-shadow:0 8px 24px rgba(15,23,42,.4);font-size:13px}
+.sim-pend{position:absolute;left:10px;right:60px;top:10px;z-index:9;
+
 .sim-pend.on{display:flex}
 .sim-pend span{font-weight:700;flex:1 1 100%}
 .sim-pend input{flex:1;min-width:120px;height:34px;border-radius:9px;border:0;padding:0 10px;font-size:14px;text-transform:uppercase}
@@ -1110,6 +1111,7 @@ body.sim-open .fab{display:none}
 
 .sim-tip{left:0;top:0;will-change:transform}
 
+.sim-stage:has(.sim-pend.on) .fps{display:none !important}
 
 
 </style>
