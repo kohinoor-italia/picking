@@ -947,6 +947,8 @@ tr.clickable:hover{background:#f5f8ff}
 .sim{position:fixed;inset:0;z-index:90;display:none;flex-direction:column;background:#eef1f6}
 .sim.on{display:flex}
 body.sim-open{overflow:hidden}
+body.sim-open .top,body.sim-open .wrap{visibility:hidden}
+
 body.sim-open .fab{display:none}
 .sim *{box-sizing:border-box}
 .sim button{font-family:inherit;cursor:pointer}
@@ -2264,7 +2266,8 @@ hbStart();
 
 
 
-setInterval(rotateArts, 3000);
+setInterval(function(){ if (!document.body.classList.contains("sim-open")) rotateArts(); }, 3000);
+
 
 function exportPdf(){
   var list = getFiltered();
@@ -3092,7 +3095,8 @@ W.bt.needsUpdate = true;
 function walkPos(){
   var c = W.pc;
   if (!c || !R.pitch) return;
-  var b = S.f.b, as = scopeAisles(), t = "";
+var b = S.f.b, as = R.asc || scopeAisles(), t = "";
+
   var ai = Math.round(W.z / R.pitch);
   if (S.grid[b] && ai >= 0 && ai < as.length){
     var a = as[ai], A = S.grid[b][a], k = Math.round(W.x);
@@ -3167,7 +3171,8 @@ function walkMake(){
 
 function walkGeom(){
   var b = S.f.b;
-  R.obst = []; R.spawn = null; R.bounds = null;
+R.obst = []; R.spawn = null; R.bounds = null; R.asc = scopeAisles();
+
   if (b === "Altre" || !S.grid[b]) return;
   var CW = 1, D = .85, GAP = 3.5, PITCH = 2 * D + GAP + 1.3;
 
@@ -3962,7 +3967,8 @@ function ensureThree(cb){
 }
 function init3(){
   var box = $("s3d");
-  R.ren = new THREE.WebGLRenderer({ antialias:false, powerPreference:"high-performance" });
+R.ren = new THREE.WebGLRenderer({ antialias:false, alpha:false, stencil:false, powerPreference:"high-performance" });
+
   R.ren.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
 
 
@@ -4132,9 +4138,9 @@ function camUpd(){
   var sp = Math.sin(R.ph);
   R.cam.position.set(R.tx + R.r * sp * Math.sin(R.th), R.ty + R.r * Math.cos(R.ph), R.tz + R.r * sp * Math.cos(R.th));
   R.cam.lookAt(R.tx, R.ty, R.tz);
-  cullAll();
-  labelsUpd();
+  if (!R.cuT) R.cuT = requestAnimationFrame(function(){ R.cuT = 0; cullAll(); labelsUpd(); });
   req();
+
 }
 
 
@@ -4149,15 +4155,24 @@ function label(txt, w, h, col, font){
   return sp;
 }
 function labelFlat(txt, w, h, col, font){
-  var c = document.createElement("canvas"); c.width = 256; c.height = 128;
-  var x = c.getContext("2d");
-  x.font = font; x.fillStyle = col; x.textAlign = "center"; x.textBaseline = "middle";
-  x.fillText(txt, 128, 64);
-  var g = new THREE.PlaneGeometry(w, h);
-  g.rotateX(-Math.PI / 2);
-  g.rotateY(-Math.PI / 2);
-  return new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
+  var key = txt + "|" + w + "|" + h + "|" + col + "|" + font;
+  R.lfc = R.lfc || {};
+  var e = R.lfc[key];
+  if (!e){
+    var c = document.createElement("canvas"); c.width = 256; c.height = 128;
+    var x = c.getContext("2d");
+    x.font = font; x.fillStyle = col; x.textAlign = "center"; x.textBaseline = "middle";
+    x.fillText(txt, 128, 64);
+    var g = new THREE.PlaneGeometry(w, h);
+    g.rotateX(-Math.PI / 2);
+    g.rotateY(-Math.PI / 2);
+    e = R.lfc[key] = { g: g, m: new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }) };
+  }
+  var mesh = new THREE.Mesh(e.g, e.m);
+  mesh.userData.lab = true;   // clearScene nu le mai dă dispose
+  return mesh;
 }
+
 function clearScene(){
   for (var i = R.scene.children.length - 1; i >= 0; i--){
     var o = R.scene.children[i];
@@ -4267,7 +4282,10 @@ t.rotation.y = sg > 0 ? -Math.PI / 2 : Math.PI / 2;
   var fg = new THREE.PlaneGeometry(width + 10, depth + 6); fg.rotateX(-Math.PI / 2);
   var fl = new THREE.Mesh(fg, new THREE.MeshBasicMaterial({ color:0x1e293b }));
 
-  fl.position.set(cx, -.02, cz); fl.userData.floor = true; R.scene.add(fl);
+fl.position.set(cx, -.02, cz); fl.userData.floor = true; R.scene.add(fl);
+  fl.updateMatrix(); fl.matrixAutoUpdate = false;
+  R.near.concat(R.bigB).forEach(function(o){ o.updateMatrix(); o.matrixAutoUpdate = false; });
+
   var asp = R.cam.aspect || 1.5, t25 = Math.tan(25 * Math.PI / 180);
   var r = Math.max((width / 2 + 3) / (t25 * asp), (maxH + depth / 2 + 2) / t25) * 1.05;
   R.home = { tx:cx, ty:maxH / 2, tz:cz, r:Math.min(Math.max(r, 8), 400), th:.35, ph:1.05 };
