@@ -1587,12 +1587,13 @@ function showLocation(loc, hl){
   }
   openResult(html);
   markActive();
-  if (hl){
+  if (hl && !window.matchMedia("(max-width:899px)").matches){
     var hr = document.querySelector("#result tr.hl");
     if (hr) hr.scrollIntoView({ block: "center" });
   }
   setTimeout(startMarquee, 50);
 }
+
 
 
 function startMarquee(){
@@ -3790,7 +3791,8 @@ function labelsUpd(){
   }
   var cp = R.cam.position, md2 = 12 * 12;
 var nd2 = 25 * 25;
-  var hideBig = W.on && S.f.a !== "all";
+var hideBig = false;
+
   (R.bigB || []).forEach(function(s){ s.visible = !hideBig; });
 
   (R.near || []).forEach(function(s){
@@ -3879,6 +3881,16 @@ function label(txt, w, h, col, font){
   sp.scale.set(w, h, 1);
   return sp;
 }
+function labelFlat(txt, w, h, col, font){
+  var c = document.createElement("canvas"); c.width = 256; c.height = 128;
+  var x = c.getContext("2d");
+  x.font = font; x.fillStyle = col; x.textAlign = "center"; x.textBaseline = "middle";
+  x.fillText(txt, 128, 64);
+  var g = new THREE.PlaneGeometry(w, h);
+  g.rotateX(-Math.PI / 2);
+  g.rotateY(-Math.PI / 2);
+  return new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
+}
 function clearScene(){
   for (var i = R.scene.children.length - 1; i >= 0; i--){
     var o = R.scene.children[i];
@@ -3906,9 +3918,16 @@ function build3(){
     var k0 = sq ? A.smin : A.min, k1 = sq ? A.smax : A.max;
     var x0 = k0 * CW - CW / 2, x1 = k1 * CW + CW / 2;
     bx0 = Math.min(bx0, x0); bx1 = Math.max(bx1, x1); maxH = Math.max(maxH, H);
-    var nmB = label(b, 3.4, 1.7, "#1d4ed8", "bold 84px Arial");
-    nmB.position.set(x0 - 2.4, H / 2 + (a === "-" ? 0 : .8), z0); R.scene.add(nmB); R.bigB.push(nmB);
-    if (a !== "-"){
+var nmB = labelFlat(a === "-" ? b : b + "." + a, 2.2, 1.1, "#60a5fa", "bold 76px Arial");
+
+
+
+nmB.position.set(x0 - 2.4, .01, z0); R.scene.add(nmB); R.bigB.push(nmB);
+    var nmM = labelFlat(b, .9, .45, "#60a5fa", "bold 70px Arial");
+    nmM.position.set(x0 - .5, .01, z0); R.scene.add(nmM); R.bigB.push(nmM);
+
+if (false){
+
       var nmA = label(a, 2.4, 1.2, "#1d4ed8", "bold 84px Arial");
       nmA.position.set(x0 - 2.4, H / 2 - .5, z0); R.scene.add(nmA);
       nmA.userData.big = true; R.near.push(nmA);
@@ -3920,15 +3939,27 @@ function build3(){
       var sg = (!!odd !== !!S.flip) ? -1 : 1, zf = z0 + sg * GAP / 2, zc = z0 + sg * (GAP / 2 + D / 2), zb = z0 + sg * (GAP / 2 + D);
 
 
-      var j, k;
+var j, k;
+      var t0 = labelFlat("00", .9, .45, "#cbd5e1", "bold 70px Arial");
+      t0.position.set((k0 - 1) * CW, .01, zf - sg * .45);
+      t0.rotation.y = sg > 0 ? -Math.PI / 2 : Math.PI / 2;
+      R.scene.add(t0); R.near.push(t0);
+
 
       for (j = 0; j <= lv.length; j++){ var y = j * LH; L.push(x0, y, zf, x1, y, zf, x0, y, zb, x1, y, zb); }
       for (k = k0; k <= k1 + 1; k++){ var xx = k * CW - CW / 2; L.push(xx, 0, zf, xx, H, zf, xx, 0, zb, xx, H, zb); }
       for (k = k0; k <= k1; k++){
         var n = sq ? k + 1 : 2 * k + (odd ? 1 : 2);
-        if ((k - k0) % 5 === 0){
-          var t = label(String(n), 1, .5, "#64748b", "bold 70px Arial");
-          t.position.set(k * CW, -.35, zf - sg * .45); R.scene.add(t);
+if (true){
+
+var t = labelFlat(n < 10 ? "0" + n : String(n), .9, .45, "#cbd5e1", "bold 70px Arial");
+
+
+t.position.set(k * CW, .01, zf - sg * .45);
+t.rotation.y = sg > 0 ? -Math.PI / 2 : Math.PI / 2;
+          R.scene.add(t);
+
+
           R.near.push(t);
 
         }
@@ -4023,6 +4054,8 @@ function bind3(cv){
   }
 
   cv.addEventListener("contextmenu", function(e){ e.preventDefault(); });
+  cv.addEventListener("pointerleave", function(){ $("sTip").style.display = "none"; });
+
   cv.addEventListener("pointerdown", function(e){
     cv.setPointerCapture(e.pointerId);
     P.set(e.pointerId, { x:e.clientX, y:e.clientY });
@@ -4071,9 +4104,40 @@ function bind3(cv){
   cv.addEventListener("pointercancel", up);
   cv.addEventListener("wheel", function(e){
     e.preventDefault();
-    R.r *= Math.exp(e.deltaY * .001);
+    var f = Math.exp(e.deltaY * .001);
+    if (W.on){
+      R.r *= f;
+      clampCam(); camUpd();
+      return;
+    }
+    var rc = cv.getBoundingClientRect();
+    v2.x = ((e.clientX - rc.left) / rc.width) * 2 - 1;
+    v2.y = -((e.clientY - rc.top) / rc.height) * 2 + 1;
+    R.cam.updateMatrixWorld();
+    ray.setFromCamera(v2, R.cam);
+    var P = null;
+    if (R.inst && R.inst.count){
+      var h = ray.intersectObject(R.inst, false)[0];
+      if (h) P = h.point.clone();
+    }
+    if (!P){
+      var pt = new THREE.Vector3();
+      var pl = new THREE.Plane(new THREE.Vector3(0, 1, 0), -R.ty);
+      if (ray.ray.intersectPlane(pl, pt)) P = pt;
+    }
+    if (P && P.distanceTo(R.cam.position) > R.r * 6) P = null;
+    var r0 = R.r;
+    var nr = Math.min(Math.max(r0 * f, 3), 500);
+    var k = nr / r0;
+    R.r = nr;
+    if (P){
+      R.tx = P.x + (R.tx - P.x) * k;
+      R.ty = P.y + (R.ty - P.y) * k;
+      R.tz = P.z + (R.tz - P.z) * k;
+    }
     clampCam(); camUpd();
   }, { passive:false });
+
   window.addEventListener("resize", function(){ if (S.on && S.view === "3d") sizeRen(); });
 }
 
@@ -4084,11 +4148,13 @@ function rebuildView(){
 }
 function setView(v){
   S.view = v;
+  $("sTip").style.display = "none";
   $("simM").setAttribute("data-v", v);
   var bs = $("sView").querySelectorAll("button");
   for (var i = 0; i < bs.length; i++) bs[i].classList.toggle("on", bs[i].getAttribute("data-v") === v);
   rebuildView();
 }
+
 function rBadge(){
   var n = planItems().length, el = $("sBadge");
   el.textContent = n; el.style.display = n ? "" : "none";
