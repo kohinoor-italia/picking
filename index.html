@@ -3333,6 +3333,35 @@ function moveTo(raw){
 }
 
 
+
+function simReload(){
+  S.items = []; S.nid = 1;
+  DB.locMap.forEach(function(arr, loc){
+    arr.forEach(function(r){ S.items.push({ id:S.nid++, art:r.articolo, desc:r.descrizione || "", orig:loc, cur:loc }); });
+  });
+  loadSaved();
+  S.undo = []; S.sel = null; S.pend = null;
+  buildGrid(); reindex();
+  if (S.blocks.indexOf(S.f.b) < 0){
+    S.f.b = S.blocks[0]; S.f.a = aislesOf(S.f.b)[0] || "all"; S.f.lvl = "all";
+  }
+  fillAll();
+  R.keep = true;
+  rebuildView();
+  R.keep = false;
+  rPanel(); rPend(); rBadge(); hitInfo();
+}
+async function exclSim(loc){
+  if (!loc) return;
+  if (BUSY[loc] || (S.by.get(loc) || []).length){ tst("Casella occupata: non si puo escludere"); return; }
+  if (!askUnlock()) return;
+  await excludeLoc(loc);
+  if (DB.locMap.has(loc)) return;
+  simReload();
+  tst("Casella esclusa: " + loc);
+}
+
+
 /* ---------- filtri ---------- */
 function vis(loc){
   var p = parse(loc);
@@ -3496,6 +3525,8 @@ function rPanel(){
   var h = '<div class="sp-h"><div><div class="sp-loc">' + esc(loc) + '</div><div class="sp-sub">' +
     (it.length ? it.length + (it.length === 1 ? " articolo" : " articoli") : "Libera") + '</div></div><div class="sp-hb">' +
     (it.length > 1 ? '<button data-a="mvall">Sposta tutti</button>' : "") +
+    '<button data-a="excl" style="background:#fef2f2;color:#dc2626">Escludi</button>' +
+
     '<button data-a="x" aria-label="Chiudi">&#10005;</button></div></div>';
   it.forEach(function(x){
     var tag = x.orig !== loc ? '<span class="sp-tag">' + (x.orig ? "da " + esc(x.orig) : "nuovo") + "</span>" : "";
@@ -3547,6 +3578,8 @@ $("sPanel").addEventListener("click", function(e){
   if (!b) return;
   var act = b.getAttribute("data-a");
   if (act === "x"){ select(null); return; }
+  if (act === "excl"){ exclSim(S.sel); return; }
+
   if (act === "mvall"){ S.pend = (S.by.get(S.sel) || []).slice(); rPend(); rPanel(); return; }
   var it = findItem(parseInt(b.getAttribute("data-id"), 10));
   if (!it) return;
