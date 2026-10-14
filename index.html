@@ -1281,21 +1281,23 @@ body.sim-open .fab{display:none}
 <div class="fps" id="sFps">-- fps</div>
 
 <div class="dbg" id="dbgM">
-  <b>Debug omuleț</b>
-  <label>Scală <span id="dbgScV"></span></label>
+<b>Debug omino</b>
+
+  <label>Scala <span id="dbgScV"></span></label>
   <input type="range" id="dbgSc" min="0.01" max="5" step="0.01">
-  <label>Viteză mers <span id="dbgSpV"></span></label>
+  <label>Velocita camminata <span id="dbgSpV"></span></label>
   <input type="range" id="dbgSp" min="0.2" max="15" step="0.1">
-  <label>Viteză animație <span id="dbgAnV"></span></label>
+  <label>Velocita animazione <span id="dbgAnV"></span></label>
   <input type="range" id="dbgAn" min="0.05" max="3" step="0.05">
-  <label>Multiplicator alergare <span id="dbgRuV"></span></label>
+  <label>Moltiplicatore corsa <span id="dbgRuV"></span></label>
   <input type="range" id="dbgRu" min="1" max="3" step="0.05">
-  <label>Rotație model <span id="dbgRoV"></span></label>
+  <label>Rotazione modello <span id="dbgRoV"></span></label>
   <input type="range" id="dbgRo" min="0" max="360" step="15">
-  <button id="dbgCopy">Copiază valori</button>
-  <button id="dbgReset">Reset valori</button>
+  <button id="dbgCopy">Copia valori</button>
+  <button id="dbgReset">Ripristina valori</button>
   <div id="dbgOut" style="margin-top:8px;font-family:monospace;font-size:12px;word-break:break-all;user-select:all"></div>
 </div>
+
 
 
       <div class="walk-joy" id="wJoy"><i id="wKnob"></i></div>
@@ -3495,8 +3497,9 @@ DBG.sc = 0.04; DBG.sp = 1.8; DBG.rot = 0; DBG.an = 1.35; DBG.ru = 2;
     sync(); store(); dbgApply(); $("dbgOut").textContent = "";
   });
   $("dbgCopy").addEventListener("click", function(){
-    var t = "scala=" + DBG.sc + " viteza=" + DBG.sp + " animatie=" + DBG.an +
-            " alergare=" + DBG.ru + " rotatie=" + DBG.rot;
+var t = "scala=" + DBG.sc + " velocita=" + DBG.sp + " animazione=" + DBG.an +
+            " corsa=" + DBG.ru + " rotazione=" + DBG.rot;
+
     $("dbgOut").textContent = t;
     try { navigator.clipboard.writeText(t); } catch(e){}
   });
