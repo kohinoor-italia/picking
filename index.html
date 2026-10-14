@@ -3229,7 +3229,7 @@ useA(b, a);
     (sq ? [1] : [1, 0]).forEach(function(odd){
       if (!sq && S.f.side === "odd" && !odd) return;
       if (!sq && S.f.side === "even" && odd) return;
-      var sg = (sq || (!!odd !== !!S.flip)) ? -1 : 1, zf = z0 + sg * GAP / 2, zb = z0 + sg * (GAP / 2 + D);
+      var sg = (!!odd !== !!S.flip) ? -1 : 1, zf = z0 + sg * GAP / 2, zb = z0 + sg * (GAP / 2 + D);
 
 
 
@@ -4394,7 +4394,7 @@ if (false){
     (sq ? [1] : [1, 0]).forEach(function(odd){
       if (!sq && S.f.side === "odd" && !odd) return;
       if (!sq && S.f.side === "even" && odd) return;
-      var sg = (sq || (!!odd !== !!S.flip)) ? -1 : 1, zf = z0 + sg * GAP / 2, zc = z0 + sg * (GAP / 2 + D / 2), zb = z0 + sg * (GAP / 2 + D);
+      var sg = (!!odd !== !!S.flip) ? -1 : 1, zf = z0 + sg * GAP / 2, zc = z0 + sg * (GAP / 2 + D / 2), zb = z0 + sg * (GAP / 2 + D);
 
 
 var j, k;
@@ -4469,7 +4469,7 @@ fl.position.set(cx, -.02, cz); fl.userData.floor = true; R.scene.add(fl);
   var asp = R.cam.aspect || 1.5, t25 = Math.tan(25 * Math.PI / 180);
   var r = Math.max((width / 2 + 3) / (t25 * asp), (maxH + depth / 2 + 2) / t25) * 1.05;
 var allSeq = as.length > 0 && as.every(function(a){ return S.grid[b][a].seq || S.f.side === "seq"; });
-  R.home = { tx:cx, ty:maxH / 2, tz:(allSeq ? cz - (GAP / 2 + D / 2) : cz), r:Math.min(Math.max(r, 8), 400), th:(allSeq ? 0 : .35), ph:(allSeq ? 1.4 : 1.05) };
+  R.home = { tx:cx, ty:maxH / 2, tz:(allSeq ? cz + (S.flip ? 1 : -1) * (GAP / 2 + D / 2) : cz), r:Math.min(Math.max(r, 8), 400), th:(allSeq ? (S.flip ? Math.PI : 0) : .35), ph:(allSeq ? 1.4 : 1.05) };
 
 
   if (W.g) walkBlk();
@@ -4999,7 +4999,8 @@ $("sGrid").addEventListener("click", function(){
 
 $("sFlip").addEventListener("click", function(){
   cfgSet("flip", !S.flip);
-  R.keep = true;
+  R.keep = W.on;
+
 
   rebuildView();
   R.keep = false;
