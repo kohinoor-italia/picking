@@ -4464,7 +4464,10 @@ fl.position.set(cx, -.02, cz); fl.userData.floor = true; R.scene.add(fl);
 
   var asp = R.cam.aspect || 1.5, t25 = Math.tan(25 * Math.PI / 180);
   var r = Math.max((width / 2 + 3) / (t25 * asp), (maxH + depth / 2 + 2) / t25) * 1.05;
-  R.home = { tx:cx, ty:maxH / 2, tz:cz, r:Math.min(Math.max(r, 8), 400), th:.35, ph:1.05 };
+var allSeq = as.length > 0 && as.every(function(a){ return S.grid[b][a].seq || S.f.side === "seq"; });
+  R.home = { tx:cx, ty:maxH / 2, tz:(allSeq ? cz - (GAP / 2 + D / 2) : cz), r:Math.min(Math.max(r, 8), 400), th:(allSeq ? 0 : .35), ph:(allSeq ? 1.4 : 1.05) };
+
+
   if (W.g) walkBlk();
 
   goHome();
