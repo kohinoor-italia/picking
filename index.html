@@ -1000,7 +1000,9 @@ body.sim-open .fab{display:none}
 .c em{font-style:normal;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .c.occ{background:#e0ecff;border-color:#93b4f8}
 .c.emp{background:#f8fafc;border-style:dashed}
+.c.exc{background:#fee2e2;border-color:#f87171;border-style:dashed}
 .c.mod{background:#fef3c7;border-color:#f59e0b}
+
 .c.hit{background:#f3e8ff;border-color:#a855f7;box-shadow:0 0 0 2px #a855f7}
 .c.sel{background:#d1fae5;border-color:#10b981;box-shadow:0 0 0 3px #10b981}
 .c.dim{opacity:.22}
@@ -1199,7 +1201,9 @@ body.sim-open .fab{display:none}
     <select id="sAis"></select>
     <select id="sSideF"><option value="all">Entrambi i lati</option><option value="odd">Dispari</option><option value="even">Pari</option><option value="seq">Senza lati</option></select>
     <select id="sLvl"></select>
-    <select id="sSt"><option value="all">Tutte</option><option value="free">Libere</option><option value="busy">Occupate</option></select>
+<select id="sSt"><option value="all">Tutte</option><option value="free">Libere</option><option value="busy">Occupate</option></select>
+<select id="sEx"><option value="hide">Escluse: nascoste</option><option value="show">Escluse: mostra</option></select>
+
     <input id="sQ" type="search" placeholder="Cerca articolo o casella..." autocomplete="off" autocapitalize="off" spellcheck="false">
   </div>
   <div class="sim-hint">
@@ -1207,7 +1211,9 @@ body.sim-open .fab{display:none}
     <span class="lg"><i style="background:#e0ecff;border-color:#93b4f8"></i>Occupata</span>
     <span class="lg"><i style="background:#fef3c7;border-color:#f59e0b"></i>Modificata</span>
     <span class="lg"><i style="background:#f3e8ff;border-color:#a855f7"></i>Trovata</span>
-    <span class="lg"><i style="background:#d1fae5;border-color:#10b981"></i>Selezionata</span>
+<span class="lg"><i style="background:#d1fae5;border-color:#10b981"></i>Selezionata</span>
+<span class="lg"><i style="background:#fee2e2;border-color:#f87171;border-style:dashed"></i>Esclusa</span>
+
     <span id="sHit"></span>
   </div>
   <div class="sim-body">
@@ -1325,7 +1331,15 @@ function buildIndex(rows){
   BUSY = {};
   rows.forEach(function(r){ if (r.articolo) BUSY[r.ubicazione] = 1; });
   rows = rows.filter(function(r){ return BUSY[r.ubicazione] || !isExcluded(r.ubicazione); });
-  window.HID = RAW.length - rows.length;
+window.HID = RAW.length - rows.length;
+var _sn = {};
+window.EXLOCS = [];
+RAW.forEach(function(r){
+  if (_sn[r.ubicazione]) return;
+  _sn[r.ubicazione] = 1;
+  if (!BUSY[r.ubicazione] && isExcluded(r.ubicazione)) window.EXLOCS.push(r.ubicazione);
+});
+
 
 
   var locMap = new Map(), artMap = new Map(), last = null;
@@ -2900,12 +2914,16 @@ var THREE_URL = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.
 var KEY = "sim_plan_v1";
 var S = {
   on:false, items:[], by:new Map(), mod:new Set(), undo:[], sel:null, pend:null,
-  view:"2d", nid:1, grid:{}, other:[], blocks:[], hits:null, addRes:[],
+view:"2d", nid:1, grid:{}, other:[], blocks:[], hits:null, addRes:[], showEx:false, exs:new Set(),
+
   f:{ b:"", a:"all", side:"all", lvl:"all", st:"all", q:"" }
 };
 var R = { ren:null, scene:null, cam:null, meshes:[], byLoc:{}, raf:0, geo:null, M:null,
           tx:0, ty:0, tz:0, r:30, th:.35, ph:1.05, home:null };
 var tt = null;
+function simLocs(){ return S.showEx ? DB.locs.concat(window.EXLOCS || []) : DB.locs; }
+function isEx(loc){ return !!(S.exs && S.exs.has(loc)); }
+
 
 /* ---------- PLIMBARE (omulet) ---------- */
 var W = { on:false, x:0, z:0, yaw:0, ph:0, sw:0, keys:{}, jx:0, jy:0, g:null, raf:0, last:0 };
@@ -3303,8 +3321,10 @@ function parse(loc){
 
 }
 function buildGrid(){
-  S.grid = {}; S.other = [];
-  DB.locs.forEach(function(loc){
+S.grid = {}; S.other = []; S.exs = new Set(S.showEx ? (window.EXLOCS || []) : []);
+
+simLocs().forEach(function(loc){
+
     var p = parse(loc);
     if (!p){ S.other.push(loc); return; }
     var B = S.grid[p.b] = S.grid[p.b] || {};
@@ -3331,7 +3351,8 @@ function scopeAisles(){
 /* ---------- stato simulazione ---------- */
 function reindex(){
   S.by = new Map();
-  DB.locs.forEach(function(l){ S.by.set(l, []); });
+simLocs().forEach(function(l){ S.by.set(l, []); });
+
   S.mod = new Set();
   S.items.forEach(function(it){
     if (it.cur){
@@ -3398,7 +3419,9 @@ function findItem(id){
 function moveTo(raw){
   if (!S.pend || !S.pend.length) return;
   var key = noDots(raw), loc = null;
-  for (var i = 0; i < DB.locs.length; i++){ if (noDots(DB.locs[i]) === key){ loc = DB.locs[i]; break; } }
+var _sl = simLocs();
+for (var i = 0; i < _sl.length; i++){ if (noDots(_sl[i]) === key){ loc = _sl[i]; break; } }
+
   if (!loc){ tst("Casella inesistente"); return; }
   var list = S.pend.map(function(it){ return [it, loc]; });
   S.pend = null;
@@ -3429,7 +3452,9 @@ function simReload(){
 }
 async function exclSim(loc){
   if (!loc) return;
-  if (BUSY[loc] || (S.by.get(loc) || []).length){ tst("Casella occupata: non si puo escludere"); return; }
+if (BUSY[loc] || (S.by.get(loc) || []).length){ tst("Casella occupata: non si puo escludere"); return; }
+if (isEx(loc)){ tst("Casella gia esclusa"); return; }
+
   if (!askUnlock()) return;
   await excludeLoc(loc);
   if (DB.locMap.has(loc)) return;
@@ -3458,7 +3483,8 @@ function computeHits(){
   var q = S.f.q.trim();
   if (q.length < 2){ S.hits = null; return; }
   var qd = noDots(q), tk = q.toLowerCase().split(/\s+/).filter(Boolean), set = new Set();
-  DB.locs.forEach(function(l){ if (noDots(l).indexOf(qd) !== -1) set.add(l); });
+simLocs().forEach(function(l){ if (noDots(l).indexOf(qd) !== -1) set.add(l); });
+
   var eanArt = (/^\d{8,14}$/.test(q) && EANMAP[q]) ? EANMAP[q] : null;
   S.items.forEach(function(it){
     if (!it.cur) return;
@@ -3503,7 +3529,9 @@ function sideSync(){
 function fillAll(){
   fillBlk(); fillAis(); fillLvl();
   sideSync();
-  $("sSt").value = S.f.st;
+$("sSt").value = S.f.st;
+$("sEx").value = S.showEx ? "show" : "hide";
+
 }
 
 function hitInfo(){
@@ -3515,7 +3543,8 @@ function hitInfo(){
 /* ---------- 2D ---------- */
 function cellClass(loc){
   var n = (S.by.get(loc) || []).length;
-  var c = "c " + (n ? "occ" : "emp");
+var c = "c " + (n ? "occ" : "emp") + (isEx(loc) ? " exc" : "");
+
   if (S.mod.has(loc)) c += " mod";
   if (S.hits && S.hits.has(loc)) c += " hit";
   if (dim(loc)) c += " dim";
@@ -3748,7 +3777,7 @@ function init3(){
   R.geo = new THREE.BoxGeometry(.9, .48, .7);
   function mat(c, o){ return new THREE.MeshLambertMaterial({ color:c, transparent:o != null, opacity:o == null ? 1 : o, depthWrite:o == null }); }
   R.mat = new THREE.MeshLambertMaterial({ color:0xffffff });
-  R.C = { emp:new THREE.Color(0xdbe3ee), occ:new THREE.Color(0x3b82f6), mod:new THREE.Color(0xf59e0b), hit:new THREE.Color(0xa855f7), sel:new THREE.Color(0x10b981), dim:new THREE.Color(0xeaeff5) };
+  R.C = { emp:new THREE.Color(0xdbe3ee), occ:new THREE.Color(0x3b82f6), mod:new THREE.Color(0xf59e0b), hit:new THREE.Color(0xa855f7), sel:new THREE.Color(0x10b981), dim:new THREE.Color(0xeaeff5), exc:new THREE.Color(0xf87171) };
 
 
   bind3(R.ren.domElement);
@@ -3759,7 +3788,8 @@ function colFor(loc){
   if (S.hits && S.hits.has(loc)) return C.hit;
   if (dim(loc)) return C.dim;
   if (S.mod.has(loc)) return C.mod;
-  return n ? C.occ : C.emp;
+return n ? C.occ : (isEx(loc) ? C.exc : C.emp);
+
 }
 
 
@@ -4428,7 +4458,19 @@ $("sAis").addEventListener("change", function(){ S.f.a = this.value; S.f.lvl = "
 $("sSideF").addEventListener("change", function(){ S.f.side = this.value; rebuildView(); });
 $("sLvl").addEventListener("change", function(){ S.f.lvl = this.value; rebuildView(); });
 $("sSt").addEventListener("change", function(){ S.f.st = this.value; if (S.view === "2d") r2(); else recolor3(); });
+$("sEx").addEventListener("change", function(){
+  S.showEx = this.value === "show";
+  buildGrid(); reindex();
+  if (S.blocks.indexOf(S.f.b) < 0){
+    S.f.b = S.blocks[0]; S.f.a = aislesOf(S.f.b)[0] || "all"; S.f.lvl = "all";
+  }
+  fillAll();
+  R.keep = true; rebuildView(); R.keep = false;
+  if (S.sel && !S.by.has(S.sel)) S.sel = null;
+  rPanel(); rPend(); rBadge(); hitInfo();
+});
 var qt = null;
+
 $("sQ").addEventListener("input", function(){
   var v = this.value;
   clearTimeout(qt);
