@@ -960,9 +960,10 @@ body.sim-open .fab{display:none}
 .sim-seg{display:flex;background:rgba(255,255,255,.12);border-radius:10px;padding:2px}
 .sim-seg button{border:0;background:transparent;color:#cbd5e1;font-weight:800;height:32px;padding:0 14px;border-radius:8px;font-size:14px}
 .sim-seg button.on{background:#fff;color:#1d4ed8}
-.sim-flt{flex-shrink:0;display:flex;gap:6px;padding:8px 10px;background:#fff;border-bottom:1px solid #e5e9f0;overflow-x:auto}
-.sim-flt select,.sim-flt input{height:36px;border:1px solid #e5e9f0;border-radius:10px;background:#f8fafc;padding:0 8px;font-size:14px;font-family:inherit;flex-shrink:0;color:#0f172a}
-.sim-flt input{min-width:190px;flex:1}
+.sim-flt{flex-shrink:0;display:flex;flex-wrap:wrap;align-items:center;gap:5px;padding:6px 8px;background:#fff;border-bottom:1px solid #e5e9f0}
+.sim-flt select,.sim-flt input{height:30px;border:1px solid #e5e9f0;border-radius:8px;background:#f8fafc;padding:0 5px;font-size:13px;font-family:inherit;flex-shrink:0;color:#0f172a;max-width:125px;text-overflow:ellipsis}
+.sim-flt input{flex:1 1 150px;min-width:130px;max-width:none;padding:0 9px}
+
 .sim-hint{flex-shrink:0;display:flex;align-items:center;gap:12px;padding:6px 12px;background:#fff;border-bottom:1px solid #e5e9f0;font-size:12px;color:#64748b;overflow-x:auto;white-space:nowrap}
 .sim-hint .lg{display:inline-flex;align-items:center;gap:5px}
 .sim-hint .lg i{width:14px;height:14px;border-radius:4px;border:1.5px solid #cbd5e1;display:inline-block}
@@ -1101,6 +1102,15 @@ body.sim-open .fab{display:none}
 .dbg input[type=range]{width:100%}
 .dbg button{margin-top:10px;width:100%;height:34px;border:0;border-radius:9px;background:#334155;color:#fff;font-weight:700}
 .sim[data-v="2d"] .dbg{display:none !important}
+.sim-flt #sFlip{height:36px;flex-shrink:0;border:1px solid #e5e9f0;border-radius:10px;background:#f8fafc;color:#0f172a;font-size:14px;font-weight:800;padding:0 12px;font-family:inherit;white-space:nowrap}
+.sim-flt #sFlip.on{background:#10b981;color:#fff;border-color:#10b981}
+.sim-flt #sFlip,.sim-flt #sSaveB{height:30px;padding:0 9px;font-size:12.5px;border-radius:8px}
+
+.sim-flt #sSaveB{height:36px;flex-shrink:0;border:1px solid #dbe7ff;border-radius:10px;background:#eff4ff;color:#1d4ed8;font-weight:700;padding:0 12px;font-size:13px;font-family:inherit;white-space:nowrap}
+
+
+.sim[data-v="2d"] #sDir,.sim[data-v="2d"] #sSaveB{display:none}
+
 
 
 .fps{position:absolute;left:10px;top:10px;z-index:8;display:none;background:rgba(15,23,42,.8);color:#4ade80;font:700 12px monospace;padding:4px 8px;border-radius:8px;pointer-events:none}
@@ -1212,7 +1222,9 @@ body.sim-open .fab{display:none}
   <div class="sim-top">
     <b>Simulazione scaffali</b>
     <div class="sim-seg" id="sView"><button data-v="2d" class="on">2D</button><button data-v="3d">3D</button></div>
-    <button class="sb" id="sUndo" aria-label="Annulla" disabled>&#8630;</button>
+<button class="sb" id="sUndo" aria-label="Annulla" disabled>&#8630;</button>
+
+
     <button class="sb" id="sPlanBtn">Piano<span class="n" id="sBadge" style="display:none">0</span></button>
     <button class="sb" id="sFs" aria-label="Schermo intero"><svg class="ic" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     <button class="sb" id="sClose" aria-label="Chiudi">&#10005;</button>
@@ -1220,12 +1232,20 @@ body.sim-open .fab{display:none}
   <div class="sim-flt">
     <select id="sBlk"></select>
     <select id="sAis"></select>
-    <select id="sSideF"><option value="all">Entrambi i lati</option><option value="odd">Dispari</option><option value="even">Pari</option><option value="seq">Senza lati</option></select>
+    <select id="sSideF"><option value="all">Tutti i lati</option><option value="odd">Dispari</option><option value="even">Pari</option><option value="seq">Senza lati</option></select>
     <select id="sLvl"></select>
 <select id="sSt"><option value="all">Tutte</option><option value="free">Libere</option><option value="busy">Occupate</option></select>
-<select id="sEx"><option value="hide">Escluse: nascoste</option><option value="show">Escluse: mostra</option></select>
+<select id="sEx"><option value="hide">Escl. nascoste</option><option value="show">Escl. mostra</option></select>
+<button class="z3" id="sFlip" aria-label="Inverti pari/dispari" title="Inverti pari/dispari">⇅ Lati</button>
+<select id="sDir"><option value="start">Num. inizio</option><option value="end">Num. fine</option></select>
+<button id="sSaveB">Salva</button>
 
-    <input id="sQ" type="search" placeholder="Cerca articolo o casella..." autocomplete="off" autocapitalize="off" spellcheck="false">
+
+
+
+
+
+    <input id="sQ" type="search" placeholder="Cerca..." autocomplete="off" autocapitalize="off" spellcheck="false">
   </div>
   <div class="sim-hint">
     <span class="lg"><i style="background:#f8fafc;border-style:dashed"></i>Libera</span>
@@ -1248,7 +1268,7 @@ body.sim-open .fab{display:none}
         <button class="z3" id="sRst" aria-label="Reimposta vista">&#8634;</button>
 <button class="z3" id="sTop" aria-label="Dall'alto">&#8657;</button>
         <button class="z3" id="sWalk" aria-label="Cammina">🚶</button>
-        <button class="z3" id="sFlip" aria-label="Inverti pari/dispari">⇅</button>
+
         <button class="z3" id="sGrid" aria-label="Griglia scaffali">▦</button>
 <button class="z3" id="sLook" aria-label="Schermo intero + mouse look">⛶</button>
 <button class="z3" id="sDbg" aria-label="Debug">⚙</button>
@@ -3113,10 +3133,13 @@ var b = S.f.b, as = R.asc || scopeAisles(), t = "";
 
   var ai = Math.round(W.z / R.pitch);
   if (S.grid[b] && ai >= 0 && ai < as.length){
-    var a = as[ai], A = S.grid[b][a], k = Math.round(W.x);
+var a = as[ai]; useA(b, a);
+    var A = S.grid[b][a], k = Math.round(W.x);
     var sq = A.seq || S.f.side === "seq";
     var k0 = sq ? A.smin : A.min, k1 = sq ? A.smax : A.max;
-    if (k >= k0 && k <= k1){
+if (k >= k0 && k <= k1){
+      k = rk(k, k0, k1);
+
       var pp = function(n){ return n < 10 ? "0" + n : String(n); };
       if (sq){
         t = (a === "-" ? b : b + "." + a) + "." + pp(k + 1);
@@ -3128,6 +3151,7 @@ var b = S.f.b, as = R.asc || scopeAisles(), t = "";
 
     }
   }
+uiRestore();
   if (t === W.ptxt) return;
   W.ptxt = t;
   var x = c.getContext("2d"), fs = 38;
@@ -3192,7 +3216,9 @@ R.obst = []; R.spawn = null; R.bounds = null; R.asc = scopeAisles();
 
   var as = scopeAisles(), bx0 = 1e9, bx1 = -1e9;
   as.forEach(function(a, ai){
+useA(b, a);
     var A = S.grid[b][a], z0 = ai * PITCH;
+
     var sq = A.seq || S.f.side === "seq";
     var k0 = sq ? A.smin : A.min, k1 = sq ? A.smax : A.max;
     var x0 = k0 * CW - CW / 2, x1 = k1 * CW + CW / 2;
@@ -3207,7 +3233,9 @@ R.obst = []; R.spawn = null; R.bounds = null; R.asc = scopeAisles();
       R.obst.push({ x0:x0, x1:x1, z0:Math.min(zf, zb), z1:Math.max(zf, zb) });
     });
   });
+uiRestore();
   R.pitch = PITCH;
+
   R.spawn = { x:bx0 - 1.5, z:0 };
   R.bounds = { x0:bx0 - 4, x1:bx1 + 4, z0:-(GAP / 2 + D) - 3, z1:(as.length - 1) * PITCH + GAP / 2 + D + 3 };
 }
@@ -3779,13 +3807,104 @@ function sideSync(){
   sel.value = S.f.side;
 }
 
+var BKEY = "sim_aisle_cfg_v2";
+var BSAVED = {};
+try { BSAVED = JSON.parse(localStorage.getItem(BKEY) || "{}") || {}; } catch(e){ BSAVED = {}; }
+S.cfg = JSON.parse(JSON.stringify(BSAVED));
+
+async function cfgLoad(){
+  try {
+    var r = await sb.from("sim_corsie").select("blocco,corsia,side,rev,flip");
+    if (r.error) throw r.error;
+    if (!r.data.length) return;
+    var m = {};
+    r.data.forEach(function(x){
+      m[x.blocco + "|" + x.corsia] = { side: x.side || "all", rev: !!x.rev, flip: !!x.flip };
+    });
+    BSAVED = m;
+    S.cfg = JSON.parse(JSON.stringify(BSAVED));
+    try { localStorage.setItem(BKEY, JSON.stringify(BSAVED)); } catch(e){}
+    if (S.on){
+      fillAll();
+      R.keep = true;
+      rebuildView();
+      R.keep = false;
+    }
+  } catch(e){ console.warn("sim_corsie:", e.message || e); }
+}
+
+
+function cfgGet(b, a){ return S.cfg[b + "|" + a] || { side:"all", rev:false, flip:false }; }
+function cfgSet(k, v){
+  scopeAisles().forEach(function(a){
+    var c = cfgGet(S.f.b, a);
+    S.cfg[S.f.b + "|" + a] = {
+      side: k === "side" ? v : c.side,
+      rev: k === "rev" ? v : !!c.rev,
+      flip: k === "flip" ? v : !!c.flip
+    };
+  });
+  uiRestore();
+}
+function useA(b, a){
+  var c = cfgGet(b, a);
+  S.f.side = c.side;
+  S.rev = !!c.rev;
+  S.flip = !!c.flip;
+}
+function uiRestore(){
+  var as = scopeAisles();
+  useA(S.f.b, as.length ? as[0] : "");
+  var d = S.rev ? "end" : "start";
+  if ($("sDir").value !== d) $("sDir").value = d;
+  $("sFlip").classList.toggle("on", !!S.flip);
+}
+
+function rk(k, k0, k1){ return S.rev ? k0 + k1 - k : k; }
+
 function fillAll(){
-  fillBlk(); fillAis(); fillLvl();
+  fillBlk(); fillAis(); uiRestore(); fillLvl();
   sideSync();
 $("sSt").value = S.f.st;
 $("sEx").value = S.showEx ? "show" : "hide";
 
 }
+
+$("sDir").addEventListener("change", function(){
+  cfgSet("rev", this.value === "end");
+  R.keep = true;
+  rebuildView();
+  R.keep = false;
+});
+$("sSaveB").addEventListener("click", async function(){
+  var as = scopeAisles(), b = S.f.b;
+  if (!as.length){ tst("Nessuna corsia da salvare"); return; }
+  var rows = [];
+  as.forEach(function(a){
+    var c = JSON.parse(JSON.stringify(cfgGet(b, a)));
+    BSAVED[b + "|" + a] = c;
+    rows.push({
+      blocco: b,
+      corsia: a,
+      side: c.side || "all",
+      rev: !!c.rev,
+      flip: !!c.flip,
+      updated_at: new Date().toISOString()
+    });
+  });
+  try { localStorage.setItem(BKEY, JSON.stringify(BSAVED)); } catch(e){}
+  var msg = as.length === 1 ? b + "." + as[0] : as.length + " corsie del blocco " + b;
+  try {
+    var up = await sb.from("sim_corsie").upsert(rows, { onConflict: "blocco,corsia" });
+    if (up.error) throw up.error;
+    tst("Salvato su Supabase: " + msg);
+  } catch(e){
+    tst("Errore Supabase (salvato solo qui): " + (e.message || e));
+  }
+});
+
+
+
 
 function hitInfo(){
   var el = $("sHit");
@@ -3811,7 +3930,9 @@ function cellHtml(loc, withName){
   return '<div class="' + cellClass(loc) + '" data-loc="' + esc(loc) + '">' + inner + "</div>";
 }
 function aisleHtml(b, a){
+useA(b, a);
   var A = S.grid[b][a];
+
   if (A.seq){
     var nc = A.max - A.min + 1;
     var hs = '<section class="s2a"><h4>' + esc(b) + '</h4><div class="s2s"><div class="s2sl">Senza lati</div>' +
@@ -3855,7 +3976,9 @@ function r2(){
   if (S.f.b === "Altre"){
     h = '<div class="s2o">' + S.other.map(function(l){ return cellHtml(l, true); }).join("") + "</div>";
   } else {
-    scopeAisles().forEach(function(a){ h += aisleHtml(S.f.b, a); });
+scopeAisles().forEach(function(a){ h += aisleHtml(S.f.b, a); });
+    uiRestore();
+
   }
   box.innerHTML = h || '<div class="sp-ph">Nessuna casella.</div>';
   box.scrollLeft = sl; box.scrollTop = st;
@@ -4229,7 +4352,9 @@ function build3(){
 
   var as = scopeAisles(), L = [], bx0 = 1e9, bx1 = -1e9, maxH = 0;
   as.forEach(function(a, ai){
+useA(b, a);
     var A = S.grid[b][a], lv = Object.keys(A.lv).sort(natCmp), H = lv.length * LH, z0 = ai * PITCH;
+
     var sq = A.seq || S.f.side === "seq";
     var k0 = sq ? A.smin : A.min, k1 = sq ? A.smax : A.max;
     var x0 = k0 * CW - CW / 2, x1 = k1 * CW + CW / 2;
@@ -4257,7 +4382,8 @@ if (false){
 
 var j, k;
       var t0 = labelFlat("00", .9, .45, "#cbd5e1", "bold 70px Arial");
-      t0.position.set((k0 - 1) * CW, .01, zf - sg * .45);
+t0.position.set((S.rev ? k1 + 1 : k0 - 1) * CW, .01, zf - sg * .45);
+
       t0.rotation.y = sg > 0 ? -Math.PI / 2 : Math.PI / 2;
       R.scene.add(t0); R.near.push(t0);
 
@@ -4265,7 +4391,8 @@ var j, k;
       for (j = 0; j <= lv.length; j++){ var y = j * LH; L.push(x0, y, zf, x1, y, zf, x0, y, zb, x1, y, zb); }
       for (k = k0; k <= k1 + 1; k++){ var xx = k * CW - CW / 2; L.push(xx, 0, zf, xx, H, zf, xx, 0, zb, xx, H, zb); }
       for (k = k0; k <= k1; k++){
-        var n = sq ? k + 1 : 2 * k + (odd ? 1 : 2);
+var n = sq ? rk(k, k0, k1) + 1 : 2 * rk(k, k0, k1) + (odd ? 1 : 2);
+
 if (true){
 
 var t = labelFlat(n < 10 ? "0" + n : String(n), .9, .45, "#cbd5e1", "bold 70px Arial");
@@ -4312,6 +4439,7 @@ t.rotation.y = sg > 0 ? -Math.PI / 2 : Math.PI / 2;
   R.lines.visible = !!S.gl && !W.on;
 
 
+uiRestore();
   var width = bx1 - bx0, depth = (as.length - 1) * PITCH + 2 * (GAP / 2 + D), cx = (bx0 + bx1) / 2, cz = (as.length - 1) * PITCH / 2;
   var fg = new THREE.PlaneGeometry(width + 10, depth + 6); fg.rotateX(-Math.PI / 2);
   var fl = new THREE.Mesh(fg, new THREE.MeshBasicMaterial({ color:0x1e293b }));
@@ -4758,7 +4886,9 @@ function openSim(){
   $("sPlan").classList.remove("on");
   setView(S.view);
   rPanel(); rPend(); rBadge(); hitInfo();
-  if (planItems().length) tst("Simulazione ripresa: " + planItems().length + " modifiche");
+if (planItems().length) tst("Simulazione ripresa: " + planItems().length + " modifiche");
+cfgLoad();
+
 }
 function closeSim(){
   if (fsEl()) fsExit();
@@ -4779,10 +4909,14 @@ $("sView").addEventListener("click", function(e){
 /* filtri */
 $("sBlk").addEventListener("change", function(){
   S.f.b = this.value; S.f.a = aislesOf(S.f.b)[0] || "all"; S.f.lvl = "all";
-  fillAis(); fillLvl(); sideSync(); rebuildView();
+fillAis(); uiRestore(); fillLvl(); sideSync(); rebuildView();
+
+
 });
-$("sAis").addEventListener("change", function(){ S.f.a = this.value; S.f.lvl = "all"; fillLvl(); sideSync(); rebuildView(); });
-$("sSideF").addEventListener("change", function(){ S.f.side = this.value; rebuildView(); });
+$("sAis").addEventListener("change", function(){ S.f.a = this.value; S.f.lvl = "all"; uiRestore(); fillLvl(); sideSync(); rebuildView(); });
+
+$("sSideF").addEventListener("change", function(){ cfgSet("side", this.value); rebuildView(); });
+
 $("sLvl").addEventListener("change", function(){ S.f.lvl = this.value; rebuildView(); });
 $("sSt").addEventListener("change", function(){ S.f.st = this.value; if (S.view === "2d") r2(); else recolor3(); });
 $("sEx").addEventListener("change", function(){
@@ -4838,10 +4972,9 @@ $("sGrid").addEventListener("click", function(){
 });
 
 $("sFlip").addEventListener("click", function(){
-  S.flip = !S.flip;
-  $("sFlip").classList.toggle("on", S.flip);
-  try { localStorage.setItem("sim_flip_v1", S.flip ? "1" : "0"); } catch(e){}
+  cfgSet("flip", !S.flip);
   R.keep = true;
+
   rebuildView();
   R.keep = false;
   tst(S.flip ? "Lati invertiti: pari e dispari scambiati" : "Lati in posizione normale");
