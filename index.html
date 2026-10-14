@@ -2931,7 +2931,23 @@ function walkMake(){
     g.add(a);
   });
   bx(.28, .36, .17, 0xf97316, 0, .58, 0, g);
-  bx(.29, .04, .175, 0xe2e8f0, 0, .52, 0, g);
+  (function(){
+    var c = document.createElement("canvas"); c.width = 256; c.height = 64;
+    var x = c.getContext("2d");
+    x.textAlign = "center"; x.textBaseline = "middle"; x.lineJoin = "round";
+    x.font = "bold 40px Arial";
+    x.lineWidth = 6; x.strokeStyle = "rgba(15,23,42,.9)"; x.strokeText("Nunzio", 128, 34);
+    x.fillStyle = "#fff"; x.fillText("Nunzio", 128, 34);
+    var tx = new THREE.CanvasTexture(c);
+    var nm = new THREE.Mesh(
+      new THREE.PlaneGeometry(.25, .0625),
+      new THREE.MeshBasicMaterial({ map: tx, transparent: true, depthWrite: false })
+    );
+    nm.position.set(0, .64, -.0875);
+    nm.rotation.y = Math.PI;
+    g.add(nm);
+  })();
+
   var hd = new THREE.Mesh(new THREE.SphereGeometry(.1, 16, 12), mt(0xfcd9b6));
   hd.position.set(0, .87, 0); g.add(hd);
   var hh = new THREE.Mesh(new THREE.SphereGeometry(.112, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), mt(0xfacc15));
