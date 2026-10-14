@@ -4059,7 +4059,7 @@ $("sPlanPdf").addEventListener("click", function(){
       doc.setFontSize(9); doc.setTextColor(107, 118, 134);
       doc.text(rows.length + " movimenti | " + nArt + " articoli | " + dataOggi, 14, 21);
 
-      var info = "PIANO OTTIMIZZATO. L'ordine dei movimenti e' stato calcolato per ridurre al minimo il numero di spostamenti. " +
+      var info = "L'ordine dei movimenti e' stato calcolato per ridurre al minimo il numero di spostamenti. " +
         "Ogni bancale viene spostato solo quando la casella di destinazione e' gia' libera, quindi nessun bancale resta in giro senza motivo. " +
         "Solo quando i movimenti rimasti si bloccano a vicenda (A al posto di B e B al posto di A) un solo bancale viene appoggiato " +
         "temporaneamente \"A TERRA\", e viene ripreso subito dopo, appena la sua destinazione si libera. Cosi' a terra c'e' al massimo " +
@@ -4106,7 +4106,8 @@ $("sPlanPdf").addEventListener("click", function(){
 
       doc.addPage();
       doc.setFontSize(16); doc.setTextColor(27, 36, 48);
-      doc.text("Cambio ubicazione (per ufficio)", 14, 15);
+      doc.text("Cambio casella (per ufficio)", 14, 15);
+
       doc.setFontSize(9); doc.setTextColor(107, 118, 134);
       doc.text("Da aggiornare nel gestionale. L'ordine non e' importante. Elenco per articolo.", 14, 21);
       doc.text(ch.length + " variazioni | " + nSenza + " articoli senza ubicazione | " + dataOggi, 14, 26);
