@@ -3681,6 +3681,12 @@ function labelsUpd(){
     return R.labMat[t] || (R.labMat[t] = new THREE.MeshBasicMaterial({ map: labTex(t), transparent: true, side: THREE.FrontSide, depthWrite: false }));
   }
   var cp = R.cam.position, md2 = 12 * 12;
+  var nd2 = 25 * 25;
+  (R.near || []).forEach(function(s){
+    var ex = s.position.x - cp.x, ey = s.position.y - cp.y, ez = s.position.z - cp.z;
+    s.visible = (ex * ex + ey * ey + ez * ez) < nd2;
+  });
+
   R.meshes.forEach(function(m){
     var u = m.userData, l = u.loc, it = S.by.get(l) || [], sp = u.sp;
     var show = it.length > 0 && m.visible && !dim(l);
@@ -3771,7 +3777,8 @@ function clearScene(){
     else if (o.isSprite){ o.material.map.dispose(); o.material.dispose(); }
     else { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }
   }
-  R.meshes = []; R.byLoc = {}; R.vis = []; R.inst = null;
+  R.meshes = []; R.byLoc = {}; R.vis = []; R.inst = null; R.near = [];
+
 }
 
 function build3(){
@@ -3787,8 +3794,14 @@ function build3(){
     var k0 = sq ? A.smin : A.min, k1 = sq ? A.smax : A.max;
     var x0 = k0 * CW - CW / 2, x1 = k1 * CW + CW / 2;
     bx0 = Math.min(bx0, x0); bx1 = Math.max(bx1, x1); maxH = Math.max(maxH, H);
-    var nm = label(a === "-" ? b : b + "." + a, 3.4, 1.7, "#1d4ed8", "bold 84px Arial");
-    nm.position.set(x0 - 2.4, H / 2, z0); R.scene.add(nm);
+    var nmB = label(b, 3.4, 1.7, "#1d4ed8", "bold 84px Arial");
+    nmB.position.set(x0 - 2.4, H / 2 + (a === "-" ? 0 : .8), z0); R.scene.add(nmB);
+    if (a !== "-"){
+      var nmA = label(a, 2.4, 1.2, "#1d4ed8", "bold 84px Arial");
+      nmA.position.set(x0 - 2.4, H / 2 - .5, z0); R.scene.add(nmA);
+      R.near.push(nmA);
+    }
+
     (sq ? [1] : [1, 0]).forEach(function(odd){
       if (!sq && S.f.side === "odd" && !odd) return;
       if (!sq && S.f.side === "even" && odd) return;
@@ -3804,6 +3817,8 @@ function build3(){
         if ((k - k0) % 5 === 0){
           var t = label(String(n), 1, .5, "#64748b", "bold 70px Arial");
           t.position.set(k * CW, -.35, zf - sg * .45); R.scene.add(t);
+          R.near.push(t);
+
         }
         for (j = 0; j < lv.length; j++){
           var loc = A.cells[n + "|" + lv[j]];
