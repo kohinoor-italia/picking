@@ -1794,11 +1794,21 @@ function pickSuggestion(i, fromScan){
 }
 
 
-$("q").addEventListener("input", runSuggest);
+var _sgT = null;
+$("q").addEventListener("input", function(){
+  $("clr").style.display = this.value ? "block" : "none";
+  clearTimeout(_sgT);
+  if (this.value.trim().length < 2){ runSuggest(); return; }
+  _sgT = setTimeout(runSuggest, 400);
+});
+
 $("q").addEventListener("keydown", function(e){
   if (e.key === "Enter"){
     e.preventDefault();
+    clearTimeout(_sgT);
+    runSuggest();
     if (sugg.length) pickSuggestion(0, true);
+
     else notFound(this);
 
 
@@ -2067,7 +2077,53 @@ async function excludeLoc(loc){
   rebuild();
 }
 
+async function unexcludeLoc(loc){
+  if (!askUnlock()) return false;
+  var hits = EXC.filter(function(r){
+    var s = EXC; EXC = [r];
+    var ok = isExcluded(loc);
+    EXC = s;
+    return ok;
+  });
+  if (!hits.length){ alert("Nessuna regola di esclusione trovata per " + loc); return false; }
+  if (!confirm("Rimuovere " + loc + " dalle escluse?")) return false;
+
+  function pad(n, w){ n = String(n); while (n.length < w) n = "0" + n; return n; }
+  var ins = [], ids = [];
+  hits.forEach(function(r){
+    ids.push(r.id);
+    var A = r.da.split("."), B = r.a.split("."), L = loc.split("."), vi = -1;
+    for (var i = 0; i < A.length; i++){
+      if (A[i].toLowerCase() !== B[i].toLowerCase()){ vi = i; break; }
+    }
+    if (vi === -1) return;                       // regola era doar pentru această casella
+    var n = parseInt(L[vi], 10), lo = parseInt(A[vi], 10), hi = parseInt(B[vi], 10);
+    if (lo > hi){ var t = lo; lo = hi; hi = t; }
+    var modo = r.modo || "tutte";
+    var step = modo === "tutte" ? 1 : 2;
+    var w = Math.max(A[vi].length, B[vi].length);
+    function mk(x, y){
+      var a = A.slice(), b = A.slice();
+      a[vi] = pad(x, w); b[vi] = pad(y, w);
+      return { da: a.join("."), a: b.join("."), modo: modo };
+    }
+    if (lo <= n - step) ins.push(mk(lo, n - step));
+    if (n + step <= hi) ins.push(mk(n + step, hi));
+  });
+
+  if (ins.length){
+    var i1 = await sb.from("ubicazioni_escluse").insert(ins);
+    if (i1.error){ alert("Errore: " + i1.error.message); return false; }
+  }
+  var d1 = await sb.from("ubicazioni_escluse").delete().in("id", ids);
+  if (d1.error){ alert("Errore: " + d1.error.message); return false; }
+  await loadExc();
+  rebuild();
+  return true;
+}
+
 var SEL = {};
+
 var selMode = false;
 
 function updBar(){
@@ -3428,7 +3484,8 @@ for (var i = 0; i < _sl.length; i++){ if (noDots(_sl[i]) === key){ loc = _sl[i];
   S.sel = loc;
   apply(list);
   refresh();
-  if (!W.on) focusOn(loc);
+  if (S.view === "2d") focusOn(loc);
+
 }
 
 
@@ -3463,7 +3520,16 @@ if (isEx(loc)){ tst("Casella gia esclusa"); return; }
 }
 
 
+async function inclSim(loc){
+  if (!loc || !isEx(loc)) return;
+  var ok = await unexcludeLoc(loc);
+  if (!ok) return;
+  simReload();
+  tst("Casella inclusa: " + loc);
+}
+
 /* ---------- filtri ---------- */
+
 function vis(loc){
   var p = parse(loc);
   if (!p || p.seq) return true;
@@ -3630,7 +3696,10 @@ function rPanel(){
   var h = '<div class="sp-h"><div><div class="sp-loc">' + esc(loc) + '</div><div class="sp-sub">' +
     (it.length ? it.length + (it.length === 1 ? " articolo" : " articoli") : "Libera") + '</div></div><div class="sp-hb">' +
     (it.length > 1 ? '<button data-a="mvall">Sposta tutti</button>' : "") +
-    '<button data-a="excl" style="background:#fef2f2;color:#dc2626">Escludi</button>' +
+    (isEx(loc)
+      ? '<button data-a="incl" style="background:#ecfdf5;color:#047857">Includi</button>'
+      : '<button data-a="excl" style="background:#fef2f2;color:#dc2626">Escludi</button>') +
+
 
     '<button data-a="x" aria-label="Chiudi">&#10005;</button></div></div>';
   it.forEach(function(x){
@@ -3684,6 +3753,8 @@ $("sPanel").addEventListener("click", function(e){
   var act = b.getAttribute("data-a");
   if (act === "x"){ select(null); return; }
   if (act === "excl"){ exclSim(S.sel); return; }
+  if (act === "incl"){ inclSim(S.sel); return; }
+
 
   if (act === "mvall"){ S.pend = (S.by.get(S.sel) || []).slice(); rPend(); rPanel(); return; }
   var it = findItem(parseInt(b.getAttribute("data-id"), 10));
@@ -4172,9 +4243,15 @@ function bind3(cv){
 }
 
 /* ---------- viste ---------- */
-function rebuildView(){
+function teleTo(loc){
+  if (S.view !== "3d" || !loc || !R.byLoc[loc]) return;
+  S.sel = loc;
+  if (W.on) walkTo(loc); else walkSet(true);
+  R.ren.render(R.scene, R.cam);
+}
+function rebuildView(tele){
   if (S.view === "2d") r2();
-  else ensureThree(function(){ if (!R.ren) init3(); sizeRen(); build3(); });
+  else ensureThree(function(){ if (!R.ren) init3(); sizeRen(); build3(); if (tele) teleTo(tele); });
 }
 function setView(v){
   S.view = v;
@@ -4182,8 +4259,9 @@ function setView(v){
   $("simM").setAttribute("data-v", v);
   var bs = $("sView").querySelectorAll("button");
   for (var i = 0; i < bs.length; i++) bs[i].classList.toggle("on", bs[i].getAttribute("data-v") === v);
-  rebuildView();
+  rebuildView(v === "3d" ? S.sel : null);
 }
+
 
 function rBadge(){
   var n = planItems().length, el = $("sBadge");
