@@ -3068,8 +3068,15 @@ function glbLoad(){
         W.act = W.mixer.clipAction(gltf.animations[0]);
         W.act.play();
         W.act.paused = true;
+        new THREE.GLTFLoader().load("cj_model_2.glb", function(g2){
+          if (!g2.animations || !g2.animations.length) return;
+          W.idle = W.mixer.clipAction(g2.animations[0]);
+          W.act.stop();
+          W.mv = undefined;
+        }, undefined, function(err){ console.warn("cj_model_2.glb:", err); });
       }
       dbgApply();
+
     }, undefined, function(err){
       console.error("Eroare cj_model.glb:", err);
       tst("Errore caricamento cj_model.glb");
@@ -3366,8 +3373,21 @@ function walkTick(t){
   W.sw += ((moving ? 1 : 0) - W.sw) * Math.min(1, dt * 10);
   if (!moving && W.sw < .01) W.sw = 0;
   if (W.sw !== prev) dirty = true;
+  if (W.idle && W.mixer){
+    if (W.mv !== moving){
+      W.mv = moving;
+      if (moving){ W.idle.fadeOut(.25); W.act.reset().fadeIn(.25).play(); }
+      else { W.act.fadeOut(.25); W.idle.reset().fadeIn(.25).play(); }
+    }
+    dirty = true;
+  }
   if (!dirty) return;
-  if (W.act){ if (!moving) W.act.paused = true; else W.mixer.update(dt); }
+  if (W.mixer){
+    if (W.idle) W.mixer.update(dt);
+    else if (!moving){ if (W.act) W.act.paused = true; }
+    else W.mixer.update(dt);
+  }
+
   W.g.position.set(W.x, 0, W.z);
 
   W.g.rotation.y = W.yaw;
