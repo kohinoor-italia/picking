@@ -1287,8 +1287,11 @@ body.sim-open .fab{display:none}
   <input type="range" id="dbgSc" min="0.01" max="5" step="0.01">
   <label>Velocita camminata <span id="dbgSpV"></span></label>
   <input type="range" id="dbgSp" min="0.2" max="15" step="0.1">
-  <label>Velocita animazione <span id="dbgAnV"></span></label>
+  <label>Velocita animazione (mers) <span id="dbgAnV"></span></label>
   <input type="range" id="dbgAn" min="0.05" max="3" step="0.05">
+  <label>Velocita animazione (corsa) <span id="dbgAnrV"></span></label>
+  <input type="range" id="dbgAnr" min="0.05" max="3" step="0.05">
+
   <label>Moltiplicatore corsa <span id="dbgRuV"></span></label>
   <input type="range" id="dbgRu" min="1" max="3" step="0.05">
   <label>Rotazione modello <span id="dbgRoV"></span></label>
@@ -3052,7 +3055,8 @@ function isEx(loc){ return !!(S.exs && S.exs.has(loc)); }
 /* ---------- PLIMBARE (omulet) ---------- */
 var W = { on:false, x:0, z:0, yaw:0, ph:0, sw:0, keys:{}, jx:0, jy:0, g:null, raf:0, last:0 };
 
-var DBG = { sc:0.04, sp:1.8, rot:0, an:1.35, ru:2 };
+var DBG = { sc:0.04, sp:1.8, rot:0, an:1.35, ru:2, anr:1.35 };
+
 
 
 
@@ -3064,6 +3068,8 @@ try {
     if (_d.rot != null) DBG.rot = +_d.rot;
     if (_d.an > 0) DBG.an = +_d.an;
     if (_d.ru > 0) DBG.ru = +_d.ru;
+    if (_d.anr > 0) DBG.anr = +_d.anr;
+
 
   }
 } catch(e){}
@@ -3097,6 +3103,12 @@ function glbLoad(){
           W.act.stop();
           W.mv = undefined;
         }, undefined, function(err){ console.warn("cj_model_2.glb:", err); });
+        new THREE.GLTFLoader().load("cj_model_3.glb", function(g3){
+          if (!g3.animations || !g3.animations.length) return;
+          W.run = W.mixer.clipAction(g3.animations[0]);
+          W.mv = undefined;
+        }, undefined, function(err){ console.warn("cj_model_3.glb:", err); });
+
       }
       dbgApply();
 
@@ -3390,7 +3402,9 @@ function walkTick(t){
     var dx = -sn * iz + cs * ix, dz = -cs * iz - sn * ix;
     var run = K.Space || K.ShiftLeft || K.ShiftRight;
     var sp = run ? DBG.sp * DBG.ru : DBG.sp;
-    if (W.act){ W.act.paused = false; W.act.timeScale = DBG.an * (run ? DBG.ru : 1); }
+    if (W.act){ W.act.paused = false; W.act.timeScale = DBG.an * ((run && !W.run) ? DBG.ru : 1); }
+    if (W.run) W.run.timeScale = DBG.anr;
+
 
 
 
@@ -3414,13 +3428,17 @@ function walkTick(t){
   if (!moving && W.sw < .01) W.sw = 0;
   if (W.sw !== prev) dirty = true;
   if (W.idle && W.mixer){
-    if (W.mv !== moving){
-      W.mv = moving;
-      if (moving){ W.idle.fadeOut(.25); W.act.reset().fadeIn(.25).play(); }
-      else { W.act.fadeOut(.25); W.idle.reset().fadeIn(.25).play(); }
+    var st = !moving ? "idle" : ((run && W.run) ? "run" : "walk");
+    if (W.mv !== st){
+      var oldA = W.mv === "run" ? W.run : (W.mv === "walk" ? W.act : W.idle);
+      var newA = st === "run" ? W.run : (st === "walk" ? W.act : W.idle);
+      W.mv = st;
+      if (oldA && oldA !== newA) oldA.fadeOut(.25);
+      newA.reset().fadeIn(.25).play();
     }
     dirty = true;
   }
+
   if (!dirty) return;
   if (W.mixer){
     if (W.idle) W.mixer.update(dt);
@@ -3465,16 +3483,20 @@ function walkSet(on){
 }
 
 (function(){
-  var sc = $("dbgSc"), sp = $("dbgSp"), ro = $("dbgRo"), an = $("dbgAn"), ru = $("dbgRu");
+  var sc = $("dbgSc"), sp = $("dbgSp"), ro = $("dbgRo"), an = $("dbgAn"), ru = $("dbgRu"), anr = $("dbgAnr");
+
   function show(){
     $("dbgScV").textContent = DBG.sc.toFixed(2) + "x";
     $("dbgSpV").textContent = DBG.sp;
     $("dbgAnV").textContent = DBG.an.toFixed(2) + "x";
+    $("dbgAnrV").textContent = DBG.anr.toFixed(2) + "x";
+
     $("dbgRuV").textContent = DBG.ru.toFixed(2) + "x";
     $("dbgRoV").textContent = DBG.rot + "°";
   }
   function sync(){
-    sc.value = DBG.sc; sp.value = DBG.sp; an.value = DBG.an; ru.value = DBG.ru; ro.value = DBG.rot;
+    sc.value = DBG.sc; sp.value = DBG.sp; an.value = DBG.an; ru.value = DBG.ru; ro.value = DBG.rot; anr.value = DBG.anr;
+
     show();
   }
   function store(){ try { localStorage.setItem("sim_dbg_v1", JSON.stringify(DBG)); } catch(e){} }
@@ -3482,23 +3504,28 @@ function walkSet(on){
     DBG.sc = parseFloat(sc.value);
     DBG.sp = parseFloat(sp.value);
     DBG.an = parseFloat(an.value);
+    DBG.anr = parseFloat(anr.value);
+
     DBG.ru = parseFloat(ru.value);
     DBG.rot = parseFloat(ro.value);
     show(); store(); dbgApply();
   }
-  [sc, sp, an, ru, ro].forEach(function(el){
+  [sc, sp, an, anr, ru, ro].forEach(function(el){
+
     el.addEventListener("input", onIn);
     el.addEventListener("change", function(){ el.blur(); });
   });
   $("dbgReset").addEventListener("click", function(){
-DBG.sc = 0.04; DBG.sp = 1.8; DBG.rot = 0; DBG.an = 1.35; DBG.ru = 2;
+DBG.sc = 0.04; DBG.sp = 1.8; DBG.rot = 0; DBG.an = 1.35; DBG.ru = 2; DBG.anr = 1.35;
+
 
 
     sync(); store(); dbgApply(); $("dbgOut").textContent = "";
   });
   $("dbgCopy").addEventListener("click", function(){
 var t = "scala=" + DBG.sc + " velocita=" + DBG.sp + " animazione=" + DBG.an +
-            " corsa=" + DBG.ru + " rotazione=" + DBG.rot;
+            " corsa=" + DBG.ru + " animazione_corsa=" + DBG.anr + " rotazione=" + DBG.rot;
+
 
     $("dbgOut").textContent = t;
     try { navigator.clipboard.writeText(t); } catch(e){}
