@@ -3139,6 +3139,8 @@ function walkBlk(){
   x.lineWidth = 6; x.strokeStyle = "rgba(15,23,42,.9)"; x.strokeText(t, 128, 34);
   x.fillStyle = "#fff"; x.fillText(t, 128, 34);
 W.bt.needsUpdate = true;
+  R.pk = null;
+
   W.ptxt = null;
   req();
 }
@@ -3146,7 +3148,11 @@ W.bt.needsUpdate = true;
 
 function walkPos(){
   var c = W.pc;
-  if (!c || !R.pitch) return;
+if (!c || !R.pitch) return;
+  var _pk = Math.round(W.z / R.pitch) + "|" + Math.round(W.x) + "|" + S.f.b + "|" + S.f.a;
+  if (_pk === R.pk) return;
+  R.pk = _pk;
+
 var b = S.f.b, as = R.asc || scopeAisles(), t = "";
 var _sd = S.f.side, _rv = S.rev, _fl = S.flip;
 
@@ -4194,7 +4200,7 @@ R.ren = new THREE.WebGLRenderer({ antialias:false, alpha:false, stencil:false, p
       var now = performance.now();
       ms += now - a; n++;
       if (now - t0 >= 500){
-        el.textContent = Math.round(n * 1000 / (now - t0)) + " fps · " + (ms / n).toFixed(1) + " ms";
+el.textContent = Math.round(n * 1000 / (now - t0)) + " fps · " + (ms / n).toFixed(1) + " ms · " + R.ren.info.render.calls + " calls · " + Math.round(R.ren.info.render.triangles / 1000) + "k tri";
         n = 0; ms = 0; t0 = now;
       }
     };
