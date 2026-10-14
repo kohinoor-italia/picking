@@ -3050,7 +3050,8 @@ function isEx(loc){ return !!(S.exs && S.exs.has(loc)); }
 /* ---------- PLIMBARE (omulet) ---------- */
 var W = { on:false, x:0, z:0, yaw:0, ph:0, sw:0, keys:{}, jx:0, jy:0, g:null, raf:0, last:0 };
 
-var DBG = { sc:0.04, sp:1.8, rot:0, an:1.35, ru:1.15 };
+var DBG = { sc:0.04, sp:1.8, rot:0, an:1.35, ru:2 };
+
 
 
 try {
@@ -3137,7 +3138,9 @@ var a = as[ai]; useA(b, a);
     var A = S.grid[b][a], k = Math.round(W.x);
     var sq = A.seq || S.f.side === "seq";
     var k0 = sq ? A.smin : A.min, k1 = sq ? A.smax : A.max;
-if (k >= k0 && k <= k1){
+k += k0;
+    if (k >= k0 && k <= k1){
+
       k = rk(k, k0, k1);
 
       var pp = function(n){ return n < 10 ? "0" + n : String(n); };
@@ -3230,11 +3233,18 @@ useA(b, a);
 
 
 
-      R.obst.push({ x0:x0, x1:x1, z0:Math.min(zf, zb), z1:Math.max(zf, zb) });
+      R.obst.push({ x0:x0 - k0 * CW, x1:x1 - k0 * CW, z0:Math.min(zf, zb), z1:Math.max(zf, zb) });
     });
   });
 uiRestore();
+bx0 = -CW / 2; bx1 = -1e9;
+  as.forEach(function(a){
+    var A = S.grid[b][a], sq = A.seq || cfgGet(b, a).side === "seq";
+    var w = (sq ? A.smax - A.smin : A.max - A.min) * CW + CW / 2;
+    if (w > bx1) bx1 = w;
+  });
   R.pitch = PITCH;
+
 
   R.spawn = { x:bx0 - 1.5, z:0 };
   R.bounds = { x0:bx0 - 4, x1:bx1 + 4, z0:-(GAP / 2 + D) - 3, z1:(as.length - 1) * PITCH + GAP / 2 + D + 3 };
@@ -3479,7 +3489,8 @@ function walkSet(on){
     el.addEventListener("change", function(){ el.blur(); });
   });
   $("dbgReset").addEventListener("click", function(){
-    DBG.sc = 0.04; DBG.sp = 1.8; DBG.rot = 0; DBG.an = 1.35; DBG.ru = 1.15;
+DBG.sc = 0.04; DBG.sp = 1.8; DBG.rot = 0; DBG.an = 1.35; DBG.ru = 2;
+
 
     sync(); store(); dbgApply(); $("dbgOut").textContent = "";
   });
@@ -4358,7 +4369,9 @@ useA(b, a);
     var sq = A.seq || S.f.side === "seq";
     var k0 = sq ? A.smin : A.min, k1 = sq ? A.smax : A.max;
     var x0 = k0 * CW - CW / 2, x1 = k1 * CW + CW / 2;
+x0 -= k0 * CW; x1 -= k0 * CW;
     bx0 = Math.min(bx0, x0); bx1 = Math.max(bx1, x1); maxH = Math.max(maxH, H);
+
 var nmB = labelFlat(a === "-" ? b : b + "." + a, 2.2, 1.1, "#60a5fa", "bold 76px Arial");
 
 
@@ -4382,14 +4395,15 @@ if (false){
 
 var j, k;
       var t0 = labelFlat("00", .9, .45, "#cbd5e1", "bold 70px Arial");
-t0.position.set((S.rev ? k1 + 1 : k0 - 1) * CW, .01, zf - sg * .45);
+t0.position.set((S.rev ? k1 - k0 + 1 : -1) * CW, .01, zf - sg * .45);
+
 
       t0.rotation.y = sg > 0 ? -Math.PI / 2 : Math.PI / 2;
       R.scene.add(t0); R.near.push(t0);
 
 
       for (j = 0; j <= lv.length; j++){ var y = j * LH; L.push(x0, y, zf, x1, y, zf, x0, y, zb, x1, y, zb); }
-      for (k = k0; k <= k1 + 1; k++){ var xx = k * CW - CW / 2; L.push(xx, 0, zf, xx, H, zf, xx, 0, zb, xx, H, zb); }
+      for (k = k0; k <= k1 + 1; k++){ var xx = (k - k0) * CW - CW / 2; L.push(xx, 0, zf, xx, H, zf, xx, 0, zb, xx, H, zb); }
       for (k = k0; k <= k1; k++){
 var n = sq ? rk(k, k0, k1) + 1 : 2 * rk(k, k0, k1) + (odd ? 1 : 2);
 
@@ -4398,7 +4412,7 @@ if (true){
 var t = labelFlat(n < 10 ? "0" + n : String(n), .9, .45, "#cbd5e1", "bold 70px Arial");
 
 
-t.position.set(k * CW, .01, zf - sg * .45);
+t.position.set((k - k0) * CW, .01, zf - sg * .45);
 t.rotation.y = sg > 0 ? -Math.PI / 2 : Math.PI / 2;
           R.scene.add(t);
 
@@ -4410,7 +4424,7 @@ t.rotation.y = sg > 0 ? -Math.PI / 2 : Math.PI / 2;
           var loc = A.cells[n + "|" + lv[j]];
           if (!loc) continue;
           var vf = vis(loc);
-          var p = new THREE.Vector3(k * CW, j * LH + LH / 2, zc);
+          var p = new THREE.Vector3((k - k0) * CW, j * LH + LH / 2, zc);
           var cell = {
             position: p, visible: vf, vf: vf, col: colFor(loc),
             mat: new THREE.Matrix4().makeTranslation(p.x, p.y, p.z),
