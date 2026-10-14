@@ -1368,7 +1368,9 @@ function esc(s){
   return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 function noDots(s){ return String(s).toLowerCase().replace(/[\s.]/g,""); }
-function natCmp(a,b){ return a.localeCompare(b, "it", { numeric: true }); }
+var _col = new Intl.Collator("it", { numeric: true });
+function natCmp(a,b){ return _col.compare(a, b); }
+
 
 /* ---------- status bar ---------- */
 function setStatus(txt, pct, isErr){
@@ -3146,6 +3148,8 @@ function walkPos(){
   var c = W.pc;
   if (!c || !R.pitch) return;
 var b = S.f.b, as = R.asc || scopeAisles(), t = "";
+var _sd = S.f.side, _rv = S.rev, _fl = S.flip;
+
 
   var ai = Math.round(W.z / R.pitch);
   if (S.grid[b] && ai >= 0 && ai < as.length){
@@ -3169,8 +3173,9 @@ k += k0;
 
     }
   }
-uiRestore();
+S.f.side = _sd; S.rev = _rv; S.flip = _fl;
   if (t === W.ptxt) return;
+
   W.ptxt = t;
   var x = c.getContext("2d"), fs = 38;
   x.clearRect(0, 0, 256, 64);
