@@ -1087,6 +1087,7 @@ body.sim-open .fab{display:none}
   .brand-ic .ic-sim{display:inline-block}
 }
 
+.sim.walking #sGrid{display:none}
 
 
 
@@ -1221,6 +1222,7 @@ body.sim-open .fab{display:none}
 <button class="z3" id="sTop" aria-label="Dall'alto">&#8657;</button>
         <button class="z3" id="sWalk" aria-label="Cammina">🚶</button>
         <button class="z3" id="sFlip" aria-label="Inverti pari/dispari">⇅</button>
+        <button class="z3" id="sGrid" aria-label="Griglia scaffali">▦</button>
 
 
       </div>
@@ -2907,6 +2909,20 @@ var tt = null;
 /* ---------- PLIMBARE (omulet) ---------- */
 var W = { on:false, x:0, z:0, yaw:0, ph:0, sw:0, keys:{}, jx:0, jy:0, g:null, raf:0, last:0 };
 
+function walkBlk(){
+  var c = W.bc;
+  if (!c) return;
+  var x = c.getContext("2d"), t = "Blocco " + (S.f.b || "");
+  x.clearRect(0, 0, 256, 64);
+  x.textAlign = "center"; x.textBaseline = "middle"; x.lineJoin = "round";
+  x.font = "bold 38px Arial";
+  x.lineWidth = 6; x.strokeStyle = "rgba(15,23,42,.9)"; x.strokeText(t, 128, 34);
+  x.fillStyle = "#fff"; x.fillText(t, 128, 34);
+  W.bt.needsUpdate = true;
+  req();
+}
+
+
 function walkMake(){
   if (W.g) return;
   var g = new THREE.Group();
@@ -2947,6 +2963,19 @@ function walkMake(){
     nm.rotation.y = Math.PI;
     g.add(nm);
   })();
+  (function(){
+    var c = document.createElement("canvas"); c.width = 256; c.height = 64;
+    W.bc = c;
+    W.bt = new THREE.CanvasTexture(c);
+    var bm = new THREE.Mesh(
+      new THREE.PlaneGeometry(.25, .0625),
+      new THREE.MeshBasicMaterial({ map: W.bt, transparent: true, depthWrite: false })
+    );
+    bm.position.set(0, .54, -.0875);
+    bm.rotation.y = Math.PI;
+    g.add(bm);
+  })();
+
 
   var hd = new THREE.Mesh(new THREE.SphereGeometry(.1, 16, 12), mt(0xfcd9b6));
   hd.position.set(0, .87, 0); g.add(hd);
@@ -3000,7 +3029,8 @@ function walkBlocked(x, z){
 function walkPlace(x, z){
   W.x = x; W.z = z; W.yaw = Math.PI / 2;
   W.g.position.set(x, 0, z); W.g.rotation.y = W.yaw;
-  R.th = -Math.PI / 2; R.ph = .95; R.r = 3.4;
+  R.th = -Math.PI / 2; R.ph = 1.4; R.r = 3.2;
+
   camUpd();
 }
 function walkSpawn(){
@@ -3162,6 +3192,8 @@ function walkSet(on){
   cancelAnimationFrame(W.raf); W.raf = 0;
   if (on){
     walkMake();
+    walkBlk();
+
     W.g.visible = true;
     if (S.sel && R.byLoc[S.sel]) walkTo(S.sel); else walkSpawn();
     W.last = performance.now();
@@ -3756,7 +3788,8 @@ function recolor3(){
   if (!R.ren) return;
   R.meshes.forEach(function(m){ m.col = colFor(m.userData.loc); });
   R.dirty = true;
-  if (R.lines) R.lines.visible = !W.on;
+  if (R.lines) R.lines.visible = !!S.gl && !W.on;
+
   if (W.on) walkClear(); else cullAll();
   labelsUpd();
   req();
@@ -3883,6 +3916,8 @@ function build3(){
   g.setAttribute("position", new THREE.Float32BufferAttribute(L, 3));
   R.lines = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color:0x64748b }));
   R.scene.add(R.lines);
+  R.lines.visible = !!S.gl && !W.on;
+
 
   var width = bx1 - bx0, depth = (as.length - 1) * PITCH + 2 * (GAP / 2 + D), cx = (bx0 + bx1) / 2, cz = (as.length - 1) * PITCH / 2;
   var fg = new THREE.PlaneGeometry(width + 10, depth + 6); fg.rotateX(-Math.PI / 2);
@@ -3892,6 +3927,8 @@ function build3(){
   var asp = R.cam.aspect || 1.5, t25 = Math.tan(25 * Math.PI / 180);
   var r = Math.max((width / 2 + 3) / (t25 * asp), (maxH + depth / 2 + 2) / t25) * 1.05;
   R.home = { tx:cx, ty:maxH / 2, tz:cz, r:Math.min(Math.max(r, 8), 400), th:.35, ph:1.05 };
+  if (W.g) walkBlk();
+
   goHome();
 }
 
@@ -4311,6 +4348,14 @@ $("sZm").addEventListener("click", function(){
 });
 $("sRst").addEventListener("click", goHome);
 $("sTop").addEventListener("click", function(){ R.ph = .05; R.th = 0; camUpd(); });
+$("sGrid").addEventListener("click", function(){
+  S.gl = !S.gl;
+  $("sGrid").classList.toggle("on", S.gl);
+  if (R.lines) R.lines.visible = S.gl && !W.on;
+  req();
+  tst(S.gl ? "Griglia attiva" : "Griglia nascosta");
+});
+
 $("sFlip").addEventListener("click", function(){
   S.flip = !S.flip;
   $("sFlip").classList.toggle("on", S.flip);
