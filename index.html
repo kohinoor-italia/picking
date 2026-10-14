@@ -1105,6 +1105,11 @@ body.sim-open .fab{display:none}
 .fps{position:absolute;left:10px;top:10px;z-index:8;display:none;background:rgba(15,23,42,.8);color:#4ade80;font:700 12px monospace;padding:4px 8px;border-radius:8px;pointer-events:none}
 .sim[data-v="3d"] .fps{display:block}
 
+.sim-stage{contain:layout paint}
+.s3d canvas{transform:translateZ(0)}
+
+.sim-tip{left:0;top:0;will-change:transform}
+
 
 
 </style>
@@ -3306,7 +3311,11 @@ function walkCam(){
   R.cam.position.set(W.x + R.r * sp * Math.sin(R.th), ty + R.r * Math.cos(R.ph), W.z + R.r * sp * Math.cos(R.th));
   R.cam.lookAt(W.x, ty, W.z);
   var now = performance.now();
-if (now - (R.wcT || 0) > 90){ R.wcT = now; walkClear(); }
+if (now - (R.wcT || 0) > 90){
+  var wk = W.x.toFixed(2) + "|" + W.z.toFixed(2) + "|" + R.th.toFixed(2) + "|" + R.ph.toFixed(2) + "|" + R.r.toFixed(2);
+  if (wk !== R.wcK){ R.wcK = wk; R.wcT = now; walkClear(); }
+}
+
   walkPos();
 
   labelsUpd();
@@ -3361,7 +3370,9 @@ function walkTick(t){
 
   W.g.rotation.y = W.yaw;
   walkCam();
+  if (R.raf){ cancelAnimationFrame(R.raf); R.raf = 0; }
   R.ren.render(R.scene, R.cam);
+
 }
 function walkSet(on){
   if (on && !R.ren){ tst("Attendi il caricamento 3D"); return; }
@@ -3475,7 +3486,8 @@ document.addEventListener("mousemove", function(e){
   R.th -= e.movementX * .0025;
   R.ph -= e.movementY * .0025;
   R.ph = Math.min(Math.max(R.ph, W.on ? .25 : .05), W.on ? 1.45 : 1.5);
-  camUpd();
+  if (!R.mlT) R.mlT = requestAnimationFrame(function(){ R.mlT = 0; camUpd(); });
+
 });
 
 
@@ -4360,7 +4372,11 @@ function bind3(cv){
 
 
   cv.addEventListener("contextmenu", function(e){ e.preventDefault(); });
-  cv.addEventListener("pointerleave", function(){ $("sTip").style.display = "none"; });
+  cv.addEventListener("pointerleave", function(){
+    $("sTip").style.display = "none";
+    if (R.hv){ cancelAnimationFrame(R.hv.raf); R.hv.raf = 0; R.hv.txt = ""; }
+  });
+
 
   cv.addEventListener("pointerdown", function(e){
     cv.setPointerCapture(e.pointerId);
@@ -4370,18 +4386,23 @@ function bind3(cv){
   });
   cv.addEventListener("pointermove", function(e){
     if (!P.has(e.pointerId)){
-      if (e.pointerType !== "mouse" || Date.now() - last < 100) return;
-      last = Date.now();
-      var loc = pick(e), tip = $("sTip");
-      if (!loc){ tip.style.display = "none"; return; }
-      var it = S.by.get(loc) || [];
-      tip.textContent = loc + " \u00b7 " + (it.length ? it.length + " art. \u00b7 " + it[0].art : "libera");
-      var sr = $("sStage").getBoundingClientRect();
-      tip.style.left = (e.clientX - sr.left + 14) + "px";
-      tip.style.top = (e.clientY - sr.top + 14) + "px";
-      tip.style.display = "block";
+      if (e.pointerType !== "mouse") return;
+      var tip = $("sTip");
+      tip.style.transform = "translate(" + (e.offsetX + 14) + "px," + (e.offsetY + 14) + "px)";
+      var hv = R.hv = R.hv || {};
+      hv.x = e.clientX; hv.y = e.clientY;
+      if (!hv.raf) hv.raf = requestAnimationFrame(function(){
+        hv.raf = 0;
+        var loc = pick({ clientX: hv.x, clientY: hv.y });
+        if (!loc){ tip.style.display = "none"; hv.txt = ""; return; }
+        var it = S.by.get(loc) || [];
+        var txt = loc + " \u00b7 " + (it.length ? it.length + " art. \u00b7 " + it[0].art : "libera");
+        if (txt !== hv.txt){ tip.textContent = txt; hv.txt = txt; }
+        tip.style.display = "block";
+      });
       return;
     }
+
     var pr = P.get(e.pointerId), dx = e.clientX - pr.x, dy = e.clientY - pr.y;
     if (down) down.moved += Math.abs(dx) + Math.abs(dy);
     if (P.size === 1){
@@ -4395,7 +4416,9 @@ function bind3(cv){
       pan(dx / 2, dy / 2);
     }
     pr.x = e.clientX; pr.y = e.clientY;
-    clampCam(); camUpd();
+    clampCam();
+    if (!R.mlT) R.mlT = requestAnimationFrame(function(){ R.mlT = 0; camUpd(); });
+
   });
   function up(e){
     var had = P.has(e.pointerId);
