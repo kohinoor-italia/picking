@@ -1971,23 +1971,28 @@ function pickCol(header, names, fallbackIdx){
 }
 
 async function loadCaps(){
-  var caps = {}, from = 0, step = 1000;
+  var caps = {}, boxes = {}, from = 0, step = 1000, hasBox = true;
   while (true){
-    var r = await sb.from(TABLE)
-      .select("articolo,cap_max")
-      .not("cap_max", "is", null)
-      .order("id", { ascending: true })
-      .range(from, from + step - 1);
+    var qy = sb.from(TABLE).select(hasBox ? "articolo,cap_max,cap_box" : "articolo,cap_max");
+    qy = hasBox ? qy.or("cap_max.not.is.null,cap_box.not.is.null") : qy.not("cap_max", "is", null);
+    var r = await qy.order("id", { ascending: true }).range(from, from + step - 1);
     if (r.error){
-      if (/cap_max/i.test(r.error.message || "")) return null;
+      var em = r.error.message || "";
+      if (hasBox && /cap_box/i.test(em)){ hasBox = false; caps = {}; boxes = {}; from = 0; continue; }
+      if (/cap_max/i.test(em)) return null;
       throw r.error;
     }
-    r.data.forEach(function(x){ if (x.articolo) caps[x.articolo] = x.cap_max; });
+    r.data.forEach(function(x){
+      if (!x.articolo) return;
+      if (x.cap_max) caps[x.articolo] = x.cap_max;
+      if (x.cap_box) boxes[x.articolo] = x.cap_box;
+    });
     if (r.data.length < step) break;
     from += step;
   }
-  return caps;
+  return { caps: caps, boxes: boxes, hasBox: hasBox };
 }
+
 
 async function handleFile(file){
   try {
@@ -2026,17 +2031,19 @@ async function handleFile(file){
     if (!rows.length) throw new Error("Nessuna riga valida trovata.");
 
     setStatus("", 0);
-    var okGo = confirm("Il database attuale verra CANCELLATO completamente e sostituito con " + rows.length + " righe dal file '" + file.name + "'. Le capacita massime verranno mantenute. Continuare?");
+    var okGo = confirm("Il database attuale verra CANCELLATO completamente e sostituito con " + rows.length + " righe dal file '" + file.name + "'. Capacita massime e pezzi per scatola verranno mantenuti. Continuare?");
     if (!okGo) return;
 
     /* 0. salvo le capacita massime esistenti (per codice articolo) */
     setStatus("Lettura capacita...", 8);
-    var caps = await loadCaps();
-    if (caps){
+    var cp = await loadCaps();
+    if (cp){
       rows.forEach(function(rw){
-        rw.cap_max = (rw.articolo && caps[rw.articolo]) ? caps[rw.articolo] : null;
+        rw.cap_max = (rw.articolo && cp.caps[rw.articolo]) ? cp.caps[rw.articolo] : null;
+        if (cp.hasBox) rw.cap_box = (rw.articolo && cp.boxes[rw.articolo]) ? cp.boxes[rw.articolo] : null;
       });
     }
+
 
     /* 1. inserimento dati nuovi */
     var chunk = 500;
