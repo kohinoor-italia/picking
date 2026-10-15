@@ -3401,7 +3401,8 @@ function walkClear(){
 
 
 function walkCam(){
-  R.r = Math.min(Math.max(R.r, 2), 14);
+  R.r = Math.min(Math.max(R.r, .5), 14);
+
   R.ph = Math.min(Math.max(R.ph, .25), 1.45);
   var sp = Math.sin(R.ph), ty = .6;
   R.cam.position.set(W.x + R.r * sp * Math.sin(R.th), ty + R.r * Math.cos(R.ph), W.z + R.r * sp * Math.cos(R.th));
@@ -4580,7 +4581,8 @@ function bind3(cv){
   var P = new Map(), down = null, last = 0, ray = new THREE.Raycaster(), v2 = new THREE.Vector2();
   var xa = new THREE.Vector3(), ya = new THREE.Vector3(), za = new THREE.Vector3();
   function clampCam(){
-    R.r = Math.min(Math.max(R.r, 3), 500);
+    R.r = Math.min(Math.max(R.r, W.on ? .5 : 3), 500);
+
     R.ph = Math.min(Math.max(R.ph, .05), 1.5);
   }
   function pan(dx, dy){
