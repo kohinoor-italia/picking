@@ -600,7 +600,27 @@ body:not(.showing) #resultPanel{display:none}
 
 
 
+#exBk{
+  display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;
+  border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;
+  font-weight:700;font-size:14px;cursor:pointer;transition:background .15s;
+}
+#exBk:hover,#exBk:active{background:rgba(255,255,255,.34)}
+.xbk{position:fixed;inset:0;z-index:75;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(15,23,42,.6)}
+.xbk.on{display:flex}
+.xbk-box{width:100%;max-width:420px;background:#fff;border-radius:16px;overflow:hidden}
+.xbk-h{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#0f172a;color:#fff}
+.xbk-h button{border:0;background:rgba(255,255,255,.15);color:#fff;width:32px;height:32px;border-radius:50%}
+.xbk-b{padding:14px;display:grid;gap:8px}
+.xbk-t{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#64748b;margin-top:6px}
+.xbk-b input,.xbk-b select{height:40px;border:1px solid #e5e9f0;border-radius:10px;padding:0 10px;font-size:15px;background:#f8fafc;width:100%;font-family:inherit}
+.xbk-go{height:42px;border:0;border-radius:10px;background:#2563eb;color:#fff;font-weight:800}
+.xbk-del{height:42px;border:0;border-radius:10px;background:#fef2f2;color:#dc2626;font-weight:800}
+.xbk-r{display:flex;gap:8px}
+.xbk-r button{flex:1}
+
 /* ---- BUTON PDF in meniul excluderi ---- */
+
 .mh-act{display:flex;align-items:center;gap:8px}
 #exPdf{
   display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;
@@ -2093,7 +2113,8 @@ function isExcluded(loc){
 async function loadExc(){
   var r = await sb.from("ubicazioni_escluse").select("id,da,a,modo").order("id", { ascending: true });
   if (r.error){ alert("Errore tabella esclusioni: " + r.error.message); EXC = []; }
-  else EXC = r.data;
+  else EXC = r.data.filter(function(x){ return String(x.da).indexOf("__BK__") !== 0; });
+
 
 }
 
@@ -2664,7 +2685,117 @@ document.addEventListener("click", function(e){
   btn.addEventListener("click", makePdf);
 })();
 
+/* ---------- BACKUP UBICAZIONI ESCLUSE (in tabelul ubicazioni_escluse) ---------- */
+(function(){
+  var BK = "__BK__";
+  var TB = "ubicazioni_escluse";
+
+  var btn = document.createElement("button");
+  btn.id = "exBk";
+  btn.type = "button";
+  btn.textContent = "Backup";
+  var act = document.querySelector("#excModal .mh-act");
+  act.insertBefore(btn, act.firstChild);
+
+  var el = document.createElement("div");
+  el.className = "xbk";
+  el.innerHTML =
+    '<div class="xbk-box"><div class="xbk-h"><b>Backup esclusioni</b><button id="xbkX" aria-label="Chiudi">&#10005;</button></div>' +
+    '<div class="xbk-b">' +
+      '<div class="xbk-t">Nuovo backup</div>' +
+      '<input id="xbkName" type="text" placeholder="Nome backup" autocomplete="off">' +
+      '<button class="xbk-go" id="xbkNew">Crea backup</button>' +
+      '<div class="xbk-t">Ripristina</div>' +
+      '<select id="xbkSel"></select>' +
+      '<div class="xbk-r"><button class="xbk-go" id="xbkRes">Ripristina</button><button class="xbk-del" id="xbkDel">Elimina</button></div>' +
+    '</div></div>';
+  document.body.appendChild(el);
+
+  function isBk(x){ return String(x.da).indexOf(BK) === 0; }
+  async function fetchAll(){
+    var r = await sb.from(TB).select("id,da,a,modo").order("id", { ascending: true });
+    if (r.error) throw r.error;
+    return r.data;
+  }
+  function label(key, n){
+    var s = key.slice(BK.length), i = s.indexOf("__");
+    var d = new Date(s.slice(0, i));
+    return s.slice(i + 2) + " \u00b7 " + d.toLocaleDateString("it-IT") + " " +
+      d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) + " (" + n + " regole)";
+  }
+  async function refresh(){
+    var sel = $("xbkSel");
+    try {
+      var rows = await fetchAll(), g = {};
+      rows.forEach(function(x){ if (isBk(x)) (g[x.da] = g[x.da] || []).push(x); });
+      var keys = Object.keys(g).sort().reverse();
+      sel.innerHTML = keys.length
+        ? keys.map(function(k){ return '<option value="' + esc(k) + '">' + esc(label(k, g[k].length)) + '</option>'; }).join("")
+        : '<option value="">Nessun backup</option>';
+    } catch (e){ sel.innerHTML = '<option value="">Errore: ' + esc(e.message || e) + '</option>'; }
+  }
+
+  btn.addEventListener("click", function(){ el.classList.add("on"); refresh(); });
+  $("xbkX").addEventListener("click", function(){ el.classList.remove("on"); });
+  el.addEventListener("mousedown", function(e){ if (e.target === el) el.classList.remove("on"); });
+
+  $("xbkNew").addEventListener("click", async function(){
+    var name = $("xbkName").value.trim();
+    if (!name){ alert("Scrivi un nome per il backup."); return; }
+    try {
+      var live = (await fetchAll()).filter(function(x){ return !isBk(x); });
+      if (!live.length){ alert("Nessuna esclusione da salvare."); return; }
+      var now = new Date().toISOString(), key = BK + now + "__" + name;
+      var rows = live.map(function(x){ return { da: key, a: x.da + "|" + x.a, modo: x.modo || "tutte" }; });
+      var ins = await sb.from(TB).insert(rows);
+      if (ins.error) throw ins.error;
+      $("xbkName").value = "";
+      alert("Backup creato: " + name + " (" + rows.length + " regole)");
+      refresh();
+    } catch (e){ alert("Errore backup: " + (e.message || e)); }
+  });
+
+  $("xbkRes").addEventListener("click", async function(){
+    var key = $("xbkSel").value;
+    if (!key){ alert("Nessun backup selezionato."); return; }
+    if (!askUnlock()) return;
+    if (!confirm("Ripristinare questo backup? Le esclusioni attuali verranno sostituite.")) return;
+    try {
+      var all = await fetchAll();
+      var bk = all.filter(function(x){ return x.da === key; });
+      if (!bk.length){ alert("Backup vuoto o non trovato."); return; }
+      var oldIds = all.filter(function(x){ return !isBk(x); }).map(function(x){ return x.id; });
+      var rows = bk.map(function(x){
+        var i = x.a.indexOf("|");
+        return { da: x.a.slice(0, i), a: x.a.slice(i + 1), modo: x.modo || "tutte" };
+      });
+      var ins = await sb.from(TB).insert(rows);
+      if (ins.error) throw ins.error;
+      if (oldIds.length){
+        var del = await sb.from(TB).delete().in("id", oldIds);
+        if (del.error) throw del.error;
+      }
+      await loadExc();
+      renderExc();
+      rebuild();
+      el.classList.remove("on");
+      alert("Backup ripristinato (" + rows.length + " regole).");
+    } catch (e){ alert("Errore ripristino: " + (e.message || e)); }
+  });
+
+  $("xbkDel").addEventListener("click", async function(){
+    var key = $("xbkSel").value;
+    if (!key) return;
+    if (!askUnlock()) return;
+    if (!confirm("Eliminare questo backup?")) return;
+    var d = await sb.from(TB).delete().eq("da", key);
+    if (d.error){ alert("Errore: " + d.error.message); return; }
+    refresh();
+  });
+})();
+
 /* ---------- CAUTARE SUS: selecteaza tot textul la focus ---------- */
+
 (function(){
   var q = $("q");
   var fromPointer = false;
