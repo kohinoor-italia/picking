@@ -1296,7 +1296,10 @@ body.sim-open .fab{display:none}
 
   <label>Moltiplicatore corsa <span id="dbgRuV"></span></label>
   <input type="range" id="dbgRu" min="1" max="3" step="0.05">
+  <label>Luminosita <span id="dbgBrV"></span></label>
+  <input type="range" id="dbgBr" min="0.3" max="3" step="0.05">
   <label>Rotazione modello <span id="dbgRoV"></span></label>
+
   <input type="range" id="dbgRo" min="0" max="360" step="15">
   <button id="dbgCopy">Copia valori</button>
   <button id="dbgReset">Ripristina valori</button>
@@ -3059,7 +3062,9 @@ function isEx(loc){ return !!(S.exs && S.exs.has(loc)); }
 /* ---------- PLIMBARE (omulet) ---------- */
 var W = { on:false, x:0, z:0, yaw:0, ph:0, sw:0, keys:{}, jx:0, jy:0, g:null, raf:0, last:0 };
 
-var DBG = { sc:0.04, sp:1.8, rot:0, an:1.45, ru:2.55, anr:1.2 };
+var DBG = { sc:0.04, sp:1.8, rot:0, an:1.45, ru:2.55, anr:1.2, br:3 };
+
+
 
 
 
@@ -3074,13 +3079,29 @@ try {
     if (_d.an > 0) DBG.an = +_d.an;
     if (_d.ru > 0) DBG.ru = +_d.ru;
     if (_d.anr > 0) DBG.anr = +_d.anr;
+    if (_d.br > 0) DBG.br = +_d.br;
+
 
 
   }
 } catch(e){}
 
+function brApply(){
+  if (!W.mdl) return;
+  W.mdl.traverse(function(o){
+    if (!o.isMesh || !o.material) return;
+    (Array.isArray(o.material) ? o.material : [o.material]).forEach(function(m){
+      if (!m.color) return;
+      if (!m.userData.c0) m.userData.c0 = m.color.clone();
+      m.color.copy(m.userData.c0).multiplyScalar(DBG.br);
+    });
+  });
+}
+
 function dbgApply(){
+  brApply();
   if (W.mdl){
+
     W.mdl.scale.setScalar(DBG.sc);
     W.mdl.rotation.y = DBG.rot * Math.PI / 180;
   }
@@ -3502,7 +3523,8 @@ function walkSet(on){
 }
 
 (function(){
-  var sc = $("dbgSc"), sp = $("dbgSp"), ro = $("dbgRo"), an = $("dbgAn"), ru = $("dbgRu"), anr = $("dbgAnr");
+  var sc = $("dbgSc"), sp = $("dbgSp"), ro = $("dbgRo"), an = $("dbgAn"), ru = $("dbgRu"), anr = $("dbgAnr"), br = $("dbgBr");
+
 
   function show(){
     $("dbgScV").textContent = DBG.sc.toFixed(2) + "x";
@@ -3512,9 +3534,11 @@ function walkSet(on){
 
     $("dbgRuV").textContent = DBG.ru.toFixed(2) + "x";
     $("dbgRoV").textContent = DBG.rot + "°";
+    $("dbgBrV").textContent = DBG.br.toFixed(2) + "x";
+
   }
   function sync(){
-    sc.value = DBG.sc; sp.value = DBG.sp; an.value = DBG.an; ru.value = DBG.ru; ro.value = DBG.rot; anr.value = DBG.anr;
+    sc.value = DBG.sc; sp.value = DBG.sp; an.value = DBG.an; ru.value = DBG.ru; ro.value = DBG.rot; anr.value = DBG.anr; br.value = DBG.br;
 
     show();
   }
@@ -3527,15 +3551,20 @@ function walkSet(on){
 
     DBG.ru = parseFloat(ru.value);
     DBG.rot = parseFloat(ro.value);
+    DBG.br = parseFloat(br.value);
+
     show(); store(); dbgApply();
   }
-  [sc, sp, an, anr, ru, ro].forEach(function(el){
+  [sc, sp, an, anr, ru, ro, br].forEach(function(el){
+
 
     el.addEventListener("input", onIn);
     el.addEventListener("change", function(){ el.blur(); });
   });
   $("dbgReset").addEventListener("click", function(){
-DBG.sc = 0.04; DBG.sp = 1.8; DBG.rot = 0; DBG.an = 1.45; DBG.ru = 2.55; DBG.anr = 1.2;
+DBG.sc = 0.04; DBG.sp = 1.8; DBG.rot = 0; DBG.an = 1.45; DBG.ru = 2.55; DBG.anr = 1.2; DBG.br = 3;
+
+
 
 
 
