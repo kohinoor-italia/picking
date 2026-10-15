@@ -1110,7 +1110,21 @@ body.sim-open .fab{display:none}
 .sim-flt #sSaveB{height:36px;flex-shrink:0;border:1px solid #dbe7ff;border-radius:10px;background:#eff4ff;color:#1d4ed8;font-weight:700;padding:0 12px;font-size:13px;font-family:inherit;white-space:nowrap}
 
 
-.sim[data-v="2d"] #sDir,.sim[data-v="2d"] #sSaveB{display:none}
+.sim[data-v="2d"] #sDir,.sim[data-v="2d"] #sSaveB,.sim[data-v="2d"] #sBkB{display:none}
+.sim-flt #sBkB{height:30px;flex-shrink:0;border:1px solid #dbe7ff;border-radius:8px;background:#eff4ff;color:#1d4ed8;font-weight:700;padding:0 9px;font-size:12.5px;font-family:inherit;white-space:nowrap}
+.bkp{position:absolute;inset:0;z-index:40;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(15,23,42,.6)}
+.bkp.on{display:flex}
+.bkp-box{width:100%;max-width:420px;background:#fff;border-radius:16px;overflow:hidden}
+.bkp-h{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#0f172a;color:#fff}
+.bkp-h button{border:0;background:rgba(255,255,255,.15);color:#fff;width:32px;height:32px;border-radius:50%}
+.bkp-b{padding:14px;display:grid;gap:8px}
+.bkp-t{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#64748b;margin-top:6px}
+.bkp-b input,.bkp-b select{height:40px;border:1px solid #e5e9f0;border-radius:10px;padding:0 10px;font-size:15px;background:#f8fafc;width:100%;font-family:inherit}
+.bkp-go{height:42px;border:0;border-radius:10px;background:#2563eb;color:#fff;font-weight:800}
+.bkp-del{height:42px;border:0;border-radius:10px;background:#fef2f2;color:#dc2626;font-weight:800}
+.bkp-r{display:flex;gap:8px}
+.bkp-r button{flex:1}
+
 
 
 
@@ -1241,6 +1255,8 @@ body.sim-open .fab{display:none}
 <button class="z3" id="sFlip" aria-label="Inverti pari/dispari" title="Inverti pari/dispari">⇅ Lati</button>
 <select id="sDir"><option value="start">Num. inizio</option><option value="end">Num. fine</option></select>
 <button id="sSaveB">Salva</button>
+<button id="sBkB">Backup</button>
+
 
 
 
@@ -3911,7 +3927,9 @@ async function cfgLoad(){
     if (!r.data.length) return;
     var m = {};
     r.data.forEach(function(x){
+      if (String(x.blocco).indexOf("__BK__") === 0) return;
       m[x.blocco + "|" + x.corsia] = { side: x.side || "all", rev: !!x.rev, flip: !!x.flip };
+
     });
     BSAVED = m;
     S.cfg = JSON.parse(JSON.stringify(BSAVED));
@@ -3998,7 +4016,115 @@ $("sSaveB").addEventListener("click", async function(){
 
 
 
+/* ---------- BACKUP CORSIE (in tabelul sim_corsie) ---------- */
+var BK = "__BK__";
+var bkEl = document.createElement("div");
+bkEl.className = "bkp";
+bkEl.innerHTML =
+  '<div class="bkp-box"><div class="bkp-h"><b>Backup corsie</b><button id="bkX" aria-label="Chiudi">&#10005;</button></div>' +
+  '<div class="bkp-b">' +
+    '<div class="bkp-t">Nuovo backup</div>' +
+    '<input id="bkName" type="text" placeholder="Nome backup" autocomplete="off">' +
+    '<button class="bkp-go" id="bkNew">Crea backup</button>' +
+    '<div class="bkp-t">Ripristina</div>' +
+    '<select id="bkSel"></select>' +
+    '<div class="bkp-r"><button class="bkp-go" id="bkRes">Ripristina</button><button class="bkp-del" id="bkDel">Elimina</button></div>' +
+  '</div></div>';
+$("simM").appendChild(bkEl);
+
+async function bkFetch(){
+  var r = await sb.from("sim_corsie").select("blocco,corsia,side,rev,flip");
+  if (r.error) throw r.error;
+  return r.data;
+}
+function isBk(x){ return String(x.blocco).indexOf(BK) === 0; }
+function bkLabel(key, n){
+  var s = key.slice(BK.length), i = s.indexOf("__");
+  var d = new Date(s.slice(0, i));
+  return s.slice(i + 2) + " \u00b7 " + d.toLocaleDateString("it-IT") + " " +
+    d.toLocaleTimeString("it-IT", { hour:"2-digit", minute:"2-digit" }) + " (" + n + " corsie)";
+}
+async function bkRefresh(){
+  var sel = $("bkSel");
+  try {
+    var rows = await bkFetch(), g = {};
+    rows.forEach(function(x){ if (isBk(x)) (g[x.blocco] = g[x.blocco] || []).push(x); });
+    var keys = Object.keys(g).sort().reverse();
+    sel.innerHTML = keys.length
+      ? keys.map(function(k){ return '<option value="' + esc(k) + '">' + esc(bkLabel(k, g[k].length)) + '</option>'; }).join("")
+      : '<option value="">Nessun backup</option>';
+  } catch(e){ sel.innerHTML = '<option value="">Errore: ' + esc(e.message || e) + '</option>'; }
+}
+
+$("sBkB").addEventListener("click", function(){ bkEl.classList.add("on"); bkRefresh(); });
+$("bkX").addEventListener("click", function(){ bkEl.classList.remove("on"); });
+
+$("bkNew").addEventListener("click", async function(){
+  var name = $("bkName").value.trim();
+  if (!name){ tst("Scrivi un nome per il backup"); return; }
+  try {
+    var live = (await bkFetch()).filter(function(x){ return !isBk(x); });
+    if (!live.length){ tst("Nessuna configurazione salvata da copiare"); return; }
+    var now = new Date().toISOString(), key = BK + now + "__" + name;
+    var rows = live.map(function(x){
+      return { blocco: key, corsia: x.blocco + "|" + x.corsia, side: x.side || "all",
+               rev: !!x.rev, flip: !!x.flip, updated_at: now };
+    });
+    var up = await sb.from("sim_corsie").upsert(rows, { onConflict: "blocco,corsia" });
+    if (up.error) throw up.error;
+    $("bkName").value = "";
+    tst("Backup creato: " + name);
+    bkRefresh();
+  } catch(e){ tst("Errore backup: " + (e.message || e)); }
+});
+
+$("bkRes").addEventListener("click", async function(){
+  var key = $("bkSel").value;
+  if (!key){ tst("Nessun backup selezionato"); return; }
+  if (!askUnlock()) return;
+  if (!confirm("Ripristinare questo backup? La configurazione corsie attuale verra sostituita.")) return;
+  try {
+    var all = await bkFetch();
+    var bk = all.filter(function(x){ return x.blocco === key; });
+    if (!bk.length){ tst("Backup vuoto o non trovato"); return; }
+    var now = new Date().toISOString(), keep = {}, rows = [];
+    bk.forEach(function(x){
+      var i = x.corsia.indexOf("|"), b = x.corsia.slice(0, i), c = x.corsia.slice(i + 1);
+      keep[b + "|" + c] = 1;
+      rows.push({ blocco: b, corsia: c, side: x.side || "all", rev: !!x.rev, flip: !!x.flip, updated_at: now });
+    });
+    var up = await sb.from("sim_corsie").upsert(rows, { onConflict: "blocco,corsia" });
+    if (up.error) throw up.error;
+    var extra = all.filter(function(x){ return !isBk(x) && !keep[x.blocco + "|" + x.corsia]; });
+    for (var k = 0; k < extra.length; k++){
+      var d = await sb.from("sim_corsie").delete().eq("blocco", extra[k].blocco).eq("corsia", extra[k].corsia);
+      if (d.error) throw d.error;
+    }
+    var m = {};
+    rows.forEach(function(x){ m[x.blocco + "|" + x.corsia] = { side:x.side, rev:x.rev, flip:x.flip }; });
+    BSAVED = m;
+    S.cfg = JSON.parse(JSON.stringify(m));
+    try { localStorage.setItem(BKEY, JSON.stringify(m)); } catch(e){}
+    fillAll();
+    R.keep = true; rebuildView(); R.keep = false;
+    bkEl.classList.remove("on");
+    tst("Backup ripristinato");
+  } catch(e){ tst("Errore ripristino: " + (e.message || e)); }
+});
+
+$("bkDel").addEventListener("click", async function(){
+  var key = $("bkSel").value;
+  if (!key) return;
+  if (!askUnlock()) return;
+  if (!confirm("Eliminare questo backup?")) return;
+  var d = await sb.from("sim_corsie").delete().eq("blocco", key);
+  if (d.error){ tst("Errore: " + d.error.message); return; }
+  tst("Backup eliminato");
+  bkRefresh();
+});
+
 function hitInfo(){
+
   var el = $("sHit");
   if (!S.hits){ el.textContent = ""; return; }
   el.textContent = S.hits.size ? S.hits.size + " caselle trovate (Invio = vai)" : "Nessun risultato";
