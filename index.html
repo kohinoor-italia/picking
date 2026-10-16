@@ -2004,10 +2004,14 @@ async function handleFile(file){
     if (data.length < 2) throw new Error("Il file non contiene dati.");
 
     var hd = data[0];
-    var cMag = pickCol(hd, ["cod magazzino"], 0);
-    var cUb  = pickCol(hd, ["cod ubicazione", "ubicazione"], 1);
-    var cArt = pickCol(hd, ["articolo"], 2);
-    var cDes = pickCol(hd, ["descrizione"], 3);
+var cMag = pickCol(hd, ["cod magazzino", "ubcodmag"], 0);
+
+var cUb  = pickCol(hd, ["cod ubicazione", "ubicazione", "ubcodice"], 1);
+
+var cArt = pickCol(hd, ["articolo", "arcodar2"], 2);
+
+var cDes = pickCol(hd, ["descrizione", "ardesart"], 3);
+
 
     var batch = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     var ts = new Date().toISOString();
