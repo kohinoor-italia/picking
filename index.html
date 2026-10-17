@@ -2382,12 +2382,18 @@ function isExcluded(loc){
 }
 
 async function loadExc(){
-  var r = await sb.from("ubicazioni_escluse").select("id,da,a,modo").order("id", { ascending: true });
-  if (r.error){ alert("Errore tabella esclusioni: " + r.error.message); EXC = []; }
-  else EXC = r.data.filter(function(x){ return String(x.da).indexOf("__BK__") !== 0; });
-
-
+  var all = [], from = 0, step = 1000;
+  while (true){
+    var r = await sb.from("ubicazioni_escluse").select("id,da,a,modo")
+      .order("id", { ascending: true }).range(from, from + step - 1);
+    if (r.error){ alert("Errore tabella esclusioni: " + r.error.message); EXC = []; return; }
+    all = all.concat(r.data);
+    if (r.data.length < step) break;
+    from += step;
+  }
+  EXC = all.filter(function(x){ return String(x.da).indexOf("__BK__") !== 0; });
 }
+
 
 function rebuild(){
   buildIndex(RAW);
@@ -3684,6 +3690,10 @@ R.obst = []; R.spawn = null; R.bounds = null; R.asc = scopeAisles();
   if (b === "Altre" || !S.grid[b]) return;
   var CW = 1, D = .85, GAP = 3.5, PITCH = 2 * D + GAP + 1.3;
 
+
+
+
+
   var as = scopeAisles(), bx0 = 1e9, bx1 = -1e9;
   as.forEach(function(a, ai){
 useA(b, a);
@@ -3700,7 +3710,26 @@ useA(b, a);
 
 
 
-      R.obst.push({ x0:x0 - k0 * CW, x1:x1 - k0 * CW, z0:Math.min(zf, zb), z1:Math.max(zf, zb) });
+var lvs = Object.keys(A.lv), runS = null;
+var zmin = Math.min(zf, zb), zmax = Math.max(zf, zb);
+function colBlocked(k){
+  var n = sq ? rk(k, k0, k1) + 1 : 2 * rk(k, k0, k1) + (odd ? 1 : 2), live = false;
+  for (var j = 0; j < lvs.length; j++){
+    var loc = A.cells[n + "|" + lvs[j]];
+    if (loc && !isEx(loc)) live = true;
+  }
+return live;
+
+}
+function pushRun(ka, kb){
+  R.obst.push({ x0:(ka - k0) * CW - CW / 2, x1:(kb - k0) * CW + CW / 2, z0:zmin, z1:zmax });
+}
+for (var k = k0; k <= k1; k++){
+  if (colBlocked(k)){ if (runS === null) runS = k; }
+  else if (runS !== null){ pushRun(runS, k - 1); runS = null; }
+}
+if (runS !== null) pushRun(runS, k1);
+
     });
   });
 uiRestore();
