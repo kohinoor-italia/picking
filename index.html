@@ -1159,6 +1159,264 @@ body.sim-open .fab{display:none}
 
 .sim-stage:has(.sim-pend.on) .fps{display:none !important}
 
+/* ---- 3D: scena ocupă tot ecranul, panoul casetei devine overlay ---- */
+@media (min-width:900px){
+  .sim[data-v="3d"] .sim-side{
+    position:absolute;left:auto;right:0;top:0;bottom:0;width:340px;max-height:none;
+    border-radius:0;transform:translateX(105%);transition:transform .2s;
+    box-shadow:-8px 0 30px rgba(15,23,42,.25);z-index:6;
+    visibility:hidden;
+  }
+  .sim[data-v="3d"] .sim-side.open{transform:none;visibility:visible}
+  .sim[data-v="3d"] .sim-zoom{right:14px}
+  .sim[data-v="3d"] .sim-top{padding:8px 16px}
+  .sim[data-v="3d"] .sim-flt{padding:6px 16px}
+}
+
+
+/* ---- telefon în landscape: mai puțin antet, panou lateral ---- */
+@media (max-width:899px) and (orientation:landscape){
+  .sim[data-v="3d"] .sim-hint{display:none}
+  .sim[data-v="3d"] .sim-top{padding:calc(4px + env(safe-area-inset-top)) 10px 4px}
+  .sim[data-v="3d"] .sim-flt{flex-wrap:nowrap;overflow-x:auto;padding:3px 8px}
+  .sim[data-v="3d"] .sim-flt input{flex:0 0 120px;min-width:100px}
+  .sim[data-v="3d"] .sim-side{
+    left:auto;top:0;width:300px;max-height:none;border-radius:0;
+    transform:translateX(105%);
+  }
+  .sim[data-v="3d"] .sim-side.open{transform:none}
+}
+
+/* ---- butoane simulare: iconițe SVG ---- */
+.sim-zoom{gap:8px}
+.sim-zoom button{
+  width:42px;height:42px;padding:0;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.92);color:#1e3a8a;
+  border:1px solid rgba(203,213,225,.9);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  box-shadow:0 4px 14px rgba(15,23,42,.18);
+  transition:background .15s,color .15s,transform .15s,box-shadow .15s;
+}
+.sim-zoom button .ic{width:20px;height:20px;stroke-width:2}
+.sim-zoom button:hover{background:#fff;color:#2563eb;transform:translateY(-1px);box-shadow:0 8px 20px rgba(37,99,235,.28)}
+.sim-zoom button:active{transform:scale(.92)}
+.sim-zoom button.on{background:linear-gradient(135deg,#10b981,#059669);color:#fff;border-color:transparent;box-shadow:0 6px 18px rgba(16,185,129,.45)}
+
+.sim-top .sb .ic,.sim-flt .ic{width:18px;height:18px;stroke-width:2.1}
+.sim-flt #sFlip{display:inline-flex;align-items:center;gap:6px}
+.sim-flt #sFlip .ic{width:15px;height:15px}
+
+
+/* ---- panou casetă: design nou ---- */
+.sim-side{background:#f1f5f9;padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+
+/* antet */
+.sp-h{
+  padding:16px 16px 14px;border-bottom:0;
+  background:linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#1e3a8a 140%);
+  color:#fff;
+}
+.sp-loc{color:#fff;font-size:24px;font-weight:800;letter-spacing:.4px;font-variant-numeric:tabular-nums}
+.sp-sub{color:#93c5fd;font-weight:600;font-size:12.5px;margin-top:2px}
+.sp-hb{align-items:center;gap:6px}
+.sp-hb button{
+  height:34px;padding:0 12px;border-radius:10px;font-weight:700;font-size:13px;
+  background:rgba(255,255,255,.12)!important;color:#fff!important;
+  border:1px solid rgba(255,255,255,.18);
+  transition:background .15s,transform .15s;
+}
+.sp-hb button:hover{background:rgba(255,255,255,.22)!important}
+.sp-hb button:active{transform:scale(.95)}
+.sp-hb button[data-a="excl"]{background:rgba(248,113,113,.2)!important;color:#fecaca!important;border-color:rgba(248,113,113,.4)}
+.sp-hb button[data-a="incl"]{background:rgba(52,211,153,.2)!important;color:#a7f3d0!important;border-color:rgba(52,211,153,.4)}
+.sp-hb button[data-a="x"]{
+  width:34px;padding:0;border-radius:50%;font-size:0;position:relative;
+}
+.sp-hb button[data-a="x"]::before,.sp-bt .rm::before{
+  content:"";position:absolute;inset:0;margin:auto;width:16px;height:16px;background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E") center/contain no-repeat;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+
+/* articole = carduri */
+.sp-it{
+  margin:10px 12px 0;padding:12px;gap:10px;
+  background:#fff;border:1px solid #e2e8f0;border-radius:14px;
+  box-shadow:0 1px 3px rgba(15,23,42,.06);
+  transition:box-shadow .15s,border-color .15s;
+}
+.sp-it:hover{border-color:#bfd3fa;box-shadow:0 6px 18px rgba(37,99,235,.12)}
+.sp-tx b{font-size:15px;font-weight:800;color:#0f172a;letter-spacing:.2px}
+.sp-tx small{margin-top:3px;line-height:1.35;color:#64748b}
+.sp-tag{
+  margin-left:8px;padding:2px 8px;font-size:10.5px;font-weight:800;letter-spacing:.3px;
+  background:#fffbeb;color:#b45309;border:1px solid #fde68a;vertical-align:1px;
+}
+.sp-bt{gap:6px;align-items:center}
+.sp-bt button{
+  height:34px;border-radius:10px;font-weight:700;font-size:13px;
+  transition:background .15s,color .15s,transform .15s;
+}
+.sp-bt button[data-a="mv"]{
+  padding:0 14px;color:#fff;border:0;
+  background:linear-gradient(135deg,#2563eb,#1d4ed8);
+  box-shadow:0 4px 10px rgba(37,99,235,.3);
+}
+.sp-bt button[data-a="mv"]:active{transform:scale(.94)}
+.sp-bt .rm{
+  width:34px;padding:0;font-size:0;position:relative;
+  background:#fef2f2;color:#dc2626;border:1px solid #fee2e2;
+}
+.sp-bt .rm:hover{background:#dc2626;color:#fff;border-color:#dc2626}
+
+/* stare goală / placeholder */
+.sp-empty{
+  margin:12px;padding:22px 14px;text-align:center;color:#94a3b8;font-size:14px;
+  border:2px dashed #dbe3ee;border-radius:14px;background:rgba(255,255,255,.6);
+}
+.sp-ph{padding:46px 24px;color:#94a3b8;line-height:1.45}
+.sp-ph::before{
+  content:"";display:block;width:64px;height:64px;margin:0 auto 14px;border-radius:20px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 8l-9-5-9 5v8l9 5 9-5V8z'/%3E%3Cpath d='M3 8l9 5 9-5M12 13v8'/%3E%3C/svg%3E") center/30px no-repeat,
+    linear-gradient(135deg,#f1f6ff,#dbe7ff);
+  box-shadow:0 8px 22px rgba(37,99,235,.15);
+}
+
+/* aggiungi articolo */
+.sp-add{
+  margin:12px;padding:14px;background:#fff;
+  border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.05);
+}
+.sp-at{color:#475569;font-size:11px;letter-spacing:.8px;margin-bottom:8px}
+.sp-add input{
+  height:42px;padding:0 12px 0 38px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4.5 4.5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:12px center;background-size:18px;
+  outline:none;transition:border-color .15s,box-shadow .15s,background-color .15s;
+}
+.sp-add input:focus{background-color:#fff;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+#sAddRes{margin-top:8px;border-radius:12px;border:1px solid #e2e8f0}
+.sr{padding:10px 12px;border-bottom:1px solid #f1f5f9;transition:background .12s}
+.sr:last-child{border-bottom:0}
+.sr:hover,.sr:active{background:#eff4ff}
+.sr b{color:#1d4ed8;font-weight:800}
+.sr small{display:block;margin:2px 0 0}
+
+
+/* ---- panou casetă: compact ---- */
+.sp-h{padding:8px 10px 8px 12px;gap:6px}
+.sp-loc{font-size:17px;letter-spacing:.2px}
+.sp-sub{font-size:11px;margin-top:0}
+.sp-hb{gap:4px}
+.sp-hb button{height:28px;padding:0 9px;font-size:12px;border-radius:8px}
+.sp-hb button[data-a="x"]{width:28px;padding:0}
+.sp-hb button[data-a="x"]::before,.sp-bt .rm::before{width:13px;height:13px}
+
+.sp-it{margin:6px 8px 0;padding:7px 8px;gap:6px;border-radius:10px}
+.sp-tx b{font-size:13.5px}
+.sp-tx small{margin-top:1px;font-size:11.5px;line-height:1.25}
+.sp-tag{margin-left:5px;padding:1px 6px;font-size:10px}
+.sp-bt{gap:4px}
+.sp-bt button{height:28px;font-size:12px;border-radius:8px}
+.sp-bt button[data-a="mv"]{padding:0 11px}
+.sp-bt .rm{width:28px}
+
+.sp-empty{margin:6px 8px 0;padding:8px;font-size:12.5px;border-width:1px;border-radius:10px}
+.sp-ph{padding:18px 16px;font-size:13px}
+.sp-ph::before{width:36px;height:36px;margin-bottom:8px;border-radius:12px;background-size:18px,auto;box-shadow:none}
+
+.sp-add{margin:6px 8px 8px;padding:8px;border-radius:10px}
+.sp-at{margin-bottom:5px;font-size:10px}
+.sp-add input{height:34px;padding-left:34px;font-size:14px;border-radius:9px;background-size:16px;background-position:10px center}
+#sAddRes{margin-top:6px;border-radius:9px;max-height:180px;overflow:auto}
+.sr{padding:6px 10px;font-size:12.5px}
+
+.sim-side{padding-bottom:calc(2px + env(safe-area-inset-bottom))}
+
+/* desktop 3D: card plutitor care are doar înălțimea conținutului */
+@media (min-width:900px){
+  .sim[data-v="3d"] .sim-side{
+    top:12px;bottom:auto;right:12px;width:300px;
+    max-height:calc(100% - 24px);border-radius:14px;overflow:auto;
+    box-shadow:0 12px 36px rgba(15,23,42,.35);
+  }
+}
+/* desktop 2D: coloana nu se mai întinde pe toată înălțimea */
+@media (min-width:900px){
+  .sim[data-v="2d"] .sim-side{width:320px;align-self:flex-start;max-height:100%;border-radius:0 0 0 14px}
+}
+
+/* ---- panou casetă: fără rânduri noi, butoane discrete ---- */
+.sp-h{flex-wrap:nowrap;align-items:center}
+.sp-h > div:first-child{min-width:0;flex:1}
+.sp-loc{white-space:nowrap;word-break:normal;overflow:hidden;text-overflow:ellipsis}
+.sp-sub{white-space:nowrap}
+
+.sp-hb{flex-shrink:0;flex-wrap:nowrap;gap:3px}
+.sp-hb button{
+  height:24px;padding:0 8px;font-size:11px;font-weight:600;border-radius:7px;
+  white-space:nowrap;flex-shrink:0;line-height:1;
+  background:rgba(255,255,255,.1)!important;color:#e2e8f0!important;
+  border:1px solid rgba(255,255,255,.14);
+}
+.sp-hb button[data-a="excl"]{
+  background:transparent!important;color:#fca5a5!important;border-color:rgba(248,113,113,.35);
+}
+.sp-hb button[data-a="incl"]{
+  background:transparent!important;color:#6ee7b7!important;border-color:rgba(52,211,153,.35);
+}
+.sp-hb button[data-a="x"]{width:24px;padding:0}
+.sp-hb button[data-a="x"]::before{width:11px;height:11px}
+
+/* articole: o singură linie pe text */
+.sp-tx{min-width:0}
+.sp-tx b{white-space:nowrap}
+.sp-tag{white-space:nowrap}
+.sp-tx small{
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.sp-bt{flex-shrink:0}
+.sp-bt button{white-space:nowrap;flex-shrink:0}
+.sp-bt button[data-a="mv"]{height:26px;padding:0 10px;font-size:11.5px}
+.sp-bt .rm{width:26px;height:26px}
+.sp-bt .rm::before{width:11px;height:11px}
+
+/* panou 3D desktop puțin mai lat, ca să încapă totul */
+@media (min-width:900px){
+  .sim[data-v="3d"] .sim-side{width:320px}
+}
+
+/* ---- legendă: overlay în scena 3D ---- */
+.sim-stage > .sim-hint{
+  position:absolute;left:10px;top:30px;z-index:4;
+  flex-direction:column;align-items:flex-start;gap:3px;
+  padding:6px 9px;border:1px solid rgba(203,213,225,.9);border-radius:10px;
+  background:rgba(255,255,255,.88);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  box-shadow:0 2px 10px rgba(15,23,42,.15);
+  font-size:11px;overflow:visible;pointer-events:none;
+}
+.sim-stage > .sim-hint .lg{gap:6px}
+.sim-stage > .sim-hint .lg i{width:11px;height:11px;border-radius:3px}
+.sim-stage > .sim-hint #sHit{margin:2px 0 0;font-size:11px}
+.sim-stage > .sim-hint #sHit:empty{display:none}
+
+
+/* ---- legendă orizontală în locul fps-ului; fps doar cu debug activ ---- */
+.sim-stage > .sim-hint{
+  left:6px;top:6px;right:auto;max-width:calc(100% - 66px);
+  flex-direction:row;flex-wrap:wrap;align-items:center;gap:3px 10px;
+  padding:4px 9px;border-radius:9px;
+}
+.sim-stage > .sim-hint #sHit{margin:0 0 0 4px}
+
+/* fps ascuns implicit, apare doar când panoul debug e deschis */
+.sim[data-v="3d"] .fps{display:none}
+.sim[data-v="3d"] .sim-stage:has(.dbg.on) .fps{display:block;top:44px}
+
+
 
 </style>
 
@@ -1357,6 +1615,8 @@ body.sim-open .fab{display:none}
   </div>
   <div class="sim-toast" id="sToast"></div>
 </div>
+
+
 
 <script>
 var SB_URL = "https://fndjrfieitieqzafhyzz.supabase.co";
@@ -4556,7 +4816,8 @@ el.textContent = Math.round(n * 1000 / (now - t0)) + "fps " + (ms / n).toFixed(1
     var mat = new THREE.ShaderMaterial({
       uniforms: {
         tC:   { value: tex },
-        uSun: { value: new THREE.Vector3(.4, .42, -.6).normalize() },
+uSun: { value: new THREE.Vector3(.4, .28, -.6).normalize() },
+
         uCov: { value: .5 }            /* acoperire nori: 0.35 mulți ... 0.7 puțini */
       },
       vertexShader:
@@ -5495,6 +5756,49 @@ if (hb){
 })();
 
 
+</script>
+<script>
+(function(){
+  var P = {
+    sRst:  '<path d="M3 12a9 9 0 103-6.7"/><path d="M3 4v5h5"/>',
+    sTop:  '<path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3"/><circle cx="12" cy="12" r="3"/>',
+    sWalk: '<circle cx="13.5" cy="4.5" r="1.8"/><path d="M9.5 21l2.5-6-2.5-2.5 1.5-5 3.5 2.5 3 .5M12 15l3 2 .5 4M10.5 8.5L7.5 10.5"/>',
+    sGrid: '<rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M3.5 12h17M12 3.5v17"/>',
+    sLook: '<rect x="6.5" y="3" width="11" height="18" rx="5.5"/><path d="M12 7v4"/>',
+    sDbg:  '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
+    sZp:   '<path d="M12 5v14M5 12h14"/>',
+    sZm:   '<path d="M5 12h14"/>',
+    sUndo: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/>',
+    sClose:'<path d="M6 6l12 12M18 6L6 18"/>'
+  };
+  function svg(p){ return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + p + '</svg>'; }
+  Object.keys(P).forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = svg(P[id]);
+  });
+  var fl = document.getElementById("sFlip");
+  if (fl) fl.innerHTML = svg('<path d="M8 4v16M4.5 7.5L8 4l3.5 3.5M16 20V4M12.5 16.5L16 20l3.5-3.5"/>') + 'Lati';
+})();
+</script>
+<script>
+(function(){
+  var sim = document.getElementById("simM");
+  var hint = sim.querySelector(".sim-hint");
+  var stage = document.getElementById("sStage");
+  var body = sim.querySelector(".sim-body");
+  if (!hint || !stage || !body) return;
+
+  function place(){
+    var is3d = sim.getAttribute("data-v") === "3d";
+    if (is3d && hint.parentNode !== stage){
+      stage.appendChild(hint);
+    } else if (!is3d && hint.parentNode !== sim){
+      sim.insertBefore(hint, body);
+    }
+  }
+  new MutationObserver(place).observe(sim, { attributes:true, attributeFilter:["data-v"] });
+  place();
+})();
 </script>
 
 
