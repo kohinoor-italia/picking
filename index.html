@@ -4697,9 +4697,28 @@ function addSearch(v){
 }
 function addItem(a){
   if (!S.sel) return;
-  var it = { id:S.nid++, art:a.code, desc:a.desc || "", orig:null, cur:S.sel };
-  apply([[it, S.sel, true]]);
+  var dest = S.sel;
+  // caut articolul deja existent într-o altă casella (nu în destinație)
+  var ex = S.items.filter(function(x){
+    return x.art === a.code && x.cur && x.cur !== dest;
+  });
+  if (ex.length === 1){
+    // il mut (simulare), exact ca la butonul Sposta
+    apply([[ex[0], dest]]);
+    return;
+  }
+  if (ex.length > 1){
+    // există în mai multe căsuțe: îl mut pe primul, în ordine naturală
+    ex.sort(function(x, y){ return natCmp(x.cur, y.cur); });
+    apply([[ex[0], dest]]);
+    tst("Articolo in " + ex.length + " caselle: spostato da " + ex[0].cur);
+    return;
+  }
+  // nu există nicăieri (articol fără casella): îl adaug nou
+  var it = { id:S.nid++, art:a.code, desc:a.desc || "", orig:null, cur:dest };
+  apply([[it, dest, true]]);
 }
+
 $("sPanel").addEventListener("input", function(e){
   if (e.target.id !== "sAddQ") return;
   S.addRes = addSearch(e.target.value);
