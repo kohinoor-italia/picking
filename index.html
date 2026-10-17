@@ -3561,10 +3561,12 @@ function walkClear(){
 function walkCam(){
   R.r = Math.min(Math.max(R.r, .5), 14);
 
-  R.ph = Math.min(Math.max(R.ph, .25), 1.45);
-  var sp = Math.sin(R.ph), ty = .6;
-  R.cam.position.set(W.x + R.r * sp * Math.sin(R.th), ty + R.r * Math.cos(R.ph), W.z + R.r * sp * Math.cos(R.th));
-  R.cam.lookAt(W.x, ty, W.z);
+  R.ph = Math.min(Math.max(R.ph, .25), 2.7);
+  var php = Math.min(R.ph, 1.45), up = R.ph - php;
+  var sp = Math.sin(php), ty = .6;
+  R.cam.position.set(W.x + R.r * sp * Math.sin(R.th), ty + R.r * Math.cos(php), W.z + R.r * sp * Math.cos(R.th));
+  R.cam.lookAt(W.x, ty + R.r * Math.tan(Math.min(up, 1.3)), W.z);
+
   var now = performance.now();
 if (now - (R.wcT || 0) > 90){
   var wk = W.x.toFixed(2) + "|" + W.z.toFixed(2) + "|" + R.th.toFixed(2) + "|" + R.ph.toFixed(2) + "|" + R.r.toFixed(2);
@@ -3785,7 +3787,8 @@ document.addEventListener("mousemove", function(e){
   if (!lookOn()) return;
   R.th -= e.movementX * .0025;
   R.ph -= e.movementY * .0025;
-  R.ph = Math.min(Math.max(R.ph, W.on ? .25 : .05), W.on ? 1.45 : 1.5);
+  R.ph = Math.min(Math.max(R.ph, W.on ? .25 : .05), W.on ? 2.7 : 1.5);
+
   if (!R.mlT) R.mlT = requestAnimationFrame(function(){ R.mlT = 0; camUpd(); });
 
 });
@@ -4492,7 +4495,8 @@ R.ren = new THREE.WebGLRenderer({ antialias:false, alpha:false, stencil:false, p
   R.ren.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
 
 
-  R.ren.setClearColor(0x050a1a, 1);
+R.ren.setClearColor(0xaecbee, 1);
+
 
 
   box.appendChild(R.ren.domElement);
@@ -4517,23 +4521,78 @@ el.textContent = Math.round(n * 1000 / (now - t0)) + "fps " + (ms / n).toFixed(1
 
   R.scene = new THREE.Scene();
   (function(){
-    var N = 700, pos = new Float32Array(N * 3), i, u, v, s, rad = 1000;
-    for (i = 0; i < N; i++){
-      u = Math.random() * 2 - 1; v = Math.random() * Math.PI * 2; s = Math.sqrt(1 - u * u);
-      pos[i * 3] = rad * s * Math.cos(v);
-      pos[i * 3 + 1] = rad * u;
-      pos[i * 3 + 2] = rad * s * Math.sin(v);
+    /* textură de nori: zgomot tileable 128x128, generat o singură dată */
+    var N = 128, cv = document.createElement("canvas");
+    cv.width = cv.height = N;
+    var cx = cv.getContext("2d"), im = cx.createImageData(N, N), d = im.data;
+    var seed = 1337;
+    function rnd(){ seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    var oct = [4, 8, 16, 32], amp = [.5, .25, .125, .0625];
+    var lat = oct.map(function(n){
+      var a = new Float32Array(n * n);
+      for (var i = 0; i < a.length; i++) a[i] = rnd();
+      return a;
+    });
+    function sm(t){ return t * t * (3 - 2 * t); }
+    function vn(a, n, u, v){
+      var fx = u * n, fy = v * n, ix = Math.floor(fx), iy = Math.floor(fy);
+      var tx = sm(fx - ix), ty = sm(fy - iy);
+      var x0 = ix % n, x1 = (ix + 1) % n, y0 = iy % n, y1 = (iy + 1) % n;
+      var a00 = a[y0 * n + x0], a10 = a[y0 * n + x1], a01 = a[y1 * n + x0], a11 = a[y1 * n + x1];
+      return (a00 + (a10 - a00) * tx) * (1 - ty) + (a01 + (a11 - a01) * tx) * ty;
     }
-    var sg = new THREE.BufferGeometry();
-    sg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-    var st = new THREE.Points(sg, new THREE.PointsMaterial({ color:0xffffff, size:1.8, sizeAttenuation:false, depthWrite:false, depthTest:false, fog:false }));
-    st.frustumCulled = false;
-    st.renderOrder = -1;
-    st.userData.keep = true;
-    st.onBeforeRender = function(r, sc, cam){ this.position.copy(cam.position); this.updateMatrixWorld(); };
-    R.stars = st;
-    R.scene.add(st);
+    for (var y = 0; y < N; y++) for (var x = 0; x < N; x++){
+      var f = 0;
+      for (var o = 0; o < 4; o++) f += amp[o] * vn(lat[o], oct[o], x / N, y / N);
+      var p = (y * N + x) * 4, g = Math.min(255, f / .9375 * 255);
+      d[p] = d[p + 1] = d[p + 2] = g; d[p + 3] = 255;
+    }
+    cx.putImageData(im, 0, 0);
+    var tex = new THREE.CanvasTexture(cv);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.minFilter = tex.magFilter = THREE.LinearFilter;
+    tex.generateMipmaps = false;
+
+    var mat = new THREE.ShaderMaterial({
+      uniforms: {
+        tC:   { value: tex },
+        uSun: { value: new THREE.Vector3(.4, .42, -.6).normalize() },
+        uCov: { value: .5 }            /* acoperire nori: 0.35 mulți ... 0.7 puțini */
+      },
+      vertexShader:
+        "varying vec3 vD;" +
+        "void main(){ vD = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }",
+      fragmentShader:
+        "precision mediump float;" +
+        "uniform sampler2D tC; uniform vec3 uSun; uniform float uCov;" +
+        "varying vec3 vD;" +
+        "void main(){" +
+        "  vec3 d = normalize(vD);" +
+        "  float h = max(d.y, 0.);" +
+        "  vec3 hor = vec3(.70,.83,.96), zen = vec3(.15,.35,.78);" +
+        "  vec3 col = mix(hor, zen, pow(h, .45));" +
+        "  float s = max(dot(d, uSun), 0.);" +
+        "  col += vec3(1.,.85,.6) * (pow(s, 8.) * .22 + pow(s, 500.) * 2.);" +
+        "  vec2 uv = d.xz / (h + .12) * .35;" +
+        "  float n = texture2D(tC, uv).r * .65 + texture2D(tC, uv * 2.7 + .37).r * .35;" +
+        "  float c = smoothstep(uCov, uCov + .22, n) * smoothstep(0., .18, h);" +
+        "  float lit = clamp(.6 + (texture2D(tC, uv + uSun.xz * .03).r - n) * 3., .35, 1.);" +
+        "  vec3 cc = mix(vec3(.60,.66,.77), vec3(1.), lit);" +
+        "  col = mix(col, cc, c * .95);" +
+        "  col = mix(col, vec3(.14,.18,.26), 1. - smoothstep(-.05, 0., d.y));" +
+        "  gl_FragColor = vec4(col, 1.);" +
+        "}",
+      side: THREE.BackSide, depthWrite: false, depthTest: false, fog: false
+    });
+    var sky = new THREE.Mesh(new THREE.SphereGeometry(900, 16, 10), mat);
+    sky.frustumCulled = false;
+    sky.renderOrder = -2;
+    sky.userData.keep = true;
+    sky.onBeforeRender = function(r, sc, cam){ this.position.copy(cam.position); this.updateMatrixWorld(); };
+    R.sky = sky;
+    R.scene.add(sky);
   })();
+
 
   R.cam = new THREE.PerspectiveCamera(50, 1.5, .1, 2000);
   var amb = new THREE.AmbientLight(0xffffff, .75); amb.userData.keep = true; R.scene.add(amb);
@@ -4851,7 +4910,8 @@ function bind3(cv){
   function clampCam(){
     R.r = Math.min(Math.max(R.r, W.on ? .5 : 3), 500);
 
-    R.ph = Math.min(Math.max(R.ph, .05), 1.5);
+    R.ph = Math.min(Math.max(R.ph, .05), W.on ? 2.7 : 1.5);
+
   }
   function pan(dx, dy){
     R.cam.updateMatrixWorld();
