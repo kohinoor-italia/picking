@@ -1672,6 +1672,37 @@ function noDots(s){ return String(s).toLowerCase().replace(/[\s.]/g,""); }
 var _col = new Intl.Collator("it", { numeric: true });
 function natCmp(a,b){ return _col.compare(a, b); }
 
+/* ---------- cache IndexedDB ---------- */
+var _idb = null;
+function idbOpen(){
+  return _idb || (_idb = new Promise(function(res, rej){
+    var q = indexedDB.open("caselle_cache", 1);
+    q.onupgradeneeded = function(){ q.result.createObjectStore("kv"); };
+    q.onsuccess = function(){ res(q.result); };
+    q.onerror = function(){ rej(q.error); };
+  }));
+}
+function idbGet(k){
+  return idbOpen().then(function(db){
+    return new Promise(function(res, rej){
+      var r = db.transaction("kv", "readonly").objectStore("kv").get(k);
+      r.onsuccess = function(){ res(r.result); };
+      r.onerror = function(){ rej(r.error); };
+    });
+  }).catch(function(){ return undefined; });
+}
+function idbSet(k, v){
+  return idbOpen().then(function(db){
+    return new Promise(function(res, rej){
+      var tx = db.transaction("kv", "readwrite");
+      tx.objectStore("kv").put(v, k);
+      tx.oncomplete = res;
+      tx.onerror = function(){ rej(tx.error); };
+    });
+  }).catch(function(e){ console.warn("cache:", (e && e.message) || e); });
+}
+
+
 
 /* ---------- status bar ---------- */
 function setStatus(txt, pct, isErr){
@@ -1751,19 +1782,63 @@ function fmtDate(iso){
 
 
 
+var CSIG = null, INITFAIL = false;
+
+function excKey(){ return EXC.map(function(x){ return String(x.id); }).sort().join(","); }
+
+/* semnatura tabelului: ultima data + nr. randuri (1 cerere mica) */
+async function remoteSig(){
+  var r = await sb.from(TABLE).select("uploaded_at", { count: "exact" })
+    .order("uploaded_at", { ascending: false, nullsFirst: false }).limit(1);
+  if (r.error) throw r.error;
+  return (r.data.length ? r.data[0].uploaded_at : "") + "|" + r.count;
+}
+
+async function fullLoad(sig){
+  if (!sig){ try { sig = await remoteSig(); } catch(e){ sig = null; } }
+  var rows = await loadAll();
+  buildIndex(rows);
+  CSIG = sig;
+  if (sig) idbSet("articoli_v1", { sig: sig, rows: rows });
+}
+
+/* verificare in fundal: descarca doar daca s-a schimbat ceva */
+async function syncBg(){
+  var k0 = excKey();
+  var okExc = await loadExc(true);
+  var sig = await remoteSig();
+  if (sig !== CSIG || !DB.locs.length){
+    await fullLoad(sig);
+  } else if (okExc && excKey() !== k0){
+    buildIndex(RAW);
+  } else return;
+  $("updTxt").textContent = fmtDate(DB.last);
+  renderList();
+}
+
 async function init(){
   try {
+    var c = await idbGet("articoli_v1");
+    if (c && c.rows && c.rows.length){
+      EXC = (await idbGet("exc_v1")) || [];
+      CSIG = c.sig;
+      buildIndex(c.rows);
+      $("updTxt").textContent = fmtDate(DB.last);
+      renderList();
+      syncBg().catch(function(){});
+      return;
+    }
     await loadExc();
-    var rows = await loadAll();
-
-    buildIndex(rows);
+    await fullLoad();
     $("updTxt").textContent = fmtDate(DB.last);
     renderList();
   } catch (e){
+    INITFAIL = true;
     $("updTxt").textContent = "Eroare la incarcare";
     $("list").innerHTML = '<div class="msg">Nu s-au putut incarca datele.<br>' + esc(e.message || e) + '</div>';
   }
 }
+
 
 /* ---------- home list ---------- */
 function artHtml(r){
@@ -2331,8 +2406,8 @@ var cDes = pickCol(hd, ["descrizione", "ardesart"], 3);
 
     /* 3. ricaricamento */
     setStatus("Aggiornamento...", 98);
-    var fresh = await loadAll();
-    buildIndex(fresh);
+    await fullLoad();
+
     shown = 200;
     activeLoc = null;
     $("updTxt").textContent = fmtDate(DB.last);
@@ -2381,18 +2456,25 @@ function isExcluded(loc){
   return false;
 }
 
-async function loadExc(){
+async function loadExc(quiet){
   var all = [], from = 0, step = 1000;
   while (true){
     var r = await sb.from("ubicazioni_escluse").select("id,da,a,modo")
       .order("id", { ascending: true }).range(from, from + step - 1);
-    if (r.error){ alert("Errore tabella esclusioni: " + r.error.message); EXC = []; return; }
+    if (r.error){
+      if (!quiet){ alert("Errore tabella esclusioni: " + r.error.message); EXC = []; }
+      return false;
+    }
+
     all = all.concat(r.data);
     if (r.data.length < step) break;
     from += step;
   }
   EXC = all.filter(function(x){ return String(x.da).indexOf("__BK__") !== 0; });
+  idbSet("exc_v1", EXC);
+  return true;
 }
+
 
 
 function rebuild(){
@@ -2580,12 +2662,10 @@ const SB_HEADERS = {apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`};
 let hbTimer = null, hbFails = 0;
 
 async function softRefresh(){
-  await loadExc();
-  var rows = await loadAll();
-  buildIndex(rows);
-  renderList();
-  $("updTxt").textContent = fmtDate(DB.last);
+  await syncBg();
+  INITFAIL = false;
 }
+
 function setConn(ok){
   $('conn').className = ok ? 'ok' : 'bad';
 }
@@ -2594,7 +2674,8 @@ async function ping(){
   try {
     const res = await fetch(`${SB_URL}/rest/v1/${TABLE}?select=id&limit=1`, {headers: SB_HEADERS});
     if (!res.ok) throw new Error(res.status);
-    const recovered = hbFails >= 2 || !DB.locs.length;
+    const recovered = hbFails >= 2 || INITFAIL;
+
     hbFails = 0; setConn(true);
     if (recovered && document.activeElement?.tagName !== 'INPUT'){
       try { await softRefresh(); } catch(e){}
@@ -3381,30 +3462,26 @@ function applyEanPairs(pairs){
 
 
 async function loadEan(){
-  var KEY = "ean_cache_v2";
-  var c = null;
-  try { c = JSON.parse(localStorage.getItem(KEY)); } catch (e){}
+  try { localStorage.removeItem("ean_cache_v2"); } catch(e){}
+  var c = await idbGet("ean_v3");
+  if (c && c.pairs){ EANDATE = c.date; applyEanPairs(c.pairs); }
   try {
-    var r = await sb.from("ean").select("uploaded_at").order("uploaded_at", { ascending: false }).limit(1);
+    var r = await sb.from("ean").select("uploaded_at")
+      .order("uploaded_at", { ascending: false, nullsFirst: false }).limit(1);
     if (r.error) throw r.error;
     var remote = r.data.length ? r.data[0].uploaded_at : null;
-
-    if (c && c.pairs && remote && c.date === remote){
-      EANDATE = c.date;
-      applyEanPairs(c.pairs);
-      return;
-    }
+    if (c && c.pairs && remote && c.date === remote) return;
 
     await loadEanFull();
-    try {
-      var pairs = Object.keys(EANMAP).map(function(k){ return [k, EANMAP[k], EANDESC[EANMAP[k]] || ""]; });
-      localStorage.setItem(KEY, JSON.stringify({ date: EANDATE, pairs: pairs }));
-    } catch (e2){ console.warn("Cache EAN:", e2.message || e2); }
+    var pairs = Object.keys(EANMAP).map(function(k){
+      return [k, EANMAP[k], EANDESC[EANMAP[k]] || ""];
+    });
+    await idbSet("ean_v3", { date: EANDATE, pairs: pairs });
   } catch (e){
-    if (c && c.pairs){ EANDATE = c.date; applyEanPairs(c.pairs); }
-    else await loadEanFull();
+    if (!(c && c.pairs)) await loadEanFull();
   }
 }
+
 
 
 
