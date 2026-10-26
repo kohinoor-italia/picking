@@ -2694,6 +2694,8 @@ window.addEventListener('offline', () => { hbFails = 2; setConn(false); });
 
 init();
 hbStart();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+
 
 
 
